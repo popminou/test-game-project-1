@@ -1,8 +1,15 @@
+import { useState } from 'react';
 import { TERRITORY_DEFS, PLAYER_COLOR_VALUES, MAP_WIDTH, MAP_HEIGHT } from '@test-project/iso';
 import type { GameState } from '@test-project/iso';
 
 interface GameMapProps {
   gameState: GameState;
+}
+
+interface Tooltip {
+  text: string;
+  x: number;
+  y: number;
 }
 
 const UNOWNED_FILL = '#2b4030';
@@ -40,6 +47,8 @@ function getPolyEdgePoint(
 }
 
 export function GameMap({ gameState }: GameMapProps) {
+  const [tooltip, setTooltip] = useState<Tooltip | null>(null);
+
   const getTerritoryFill = (territoryId: string): string => {
     const state = gameState.territories.find((t) => t.id === territoryId);
     if (!state?.ownerId) return UNOWNED_FILL;
@@ -125,6 +134,8 @@ export function GameMap({ gameState }: GameMapProps) {
         // Secondary: short side (10px) along connection direction (long side perpendicular, facing territory centers)
         const [rw, rh] = isPrimary ? [30, 10] : [10, 30];
 
+        const tooltipText = `${fromDef.name} ↔ ${toDef.name}`;
+
         return (
           <g key={`${conn.fromId}-${conn.toId}`}>
             <rect
@@ -134,6 +145,8 @@ export function GameMap({ gameState }: GameMapProps) {
               height={rh}
               fill="yellow"
               transform={`rotate(${angle}, ${edgeA[0]}, ${edgeA[1]})`}
+              onMouseEnter={() => setTooltip({ text: tooltipText, x: edgeA[0], y: edgeA[1] })}
+              onMouseLeave={() => setTooltip(null)}
             />
             <rect
               x={edgeB[0] - rw / 2}
@@ -142,10 +155,37 @@ export function GameMap({ gameState }: GameMapProps) {
               height={rh}
               fill="yellow"
               transform={`rotate(${angle}, ${edgeB[0]}, ${edgeB[1]})`}
+              onMouseEnter={() => setTooltip({ text: tooltipText, x: edgeB[0], y: edgeB[1] })}
+              onMouseLeave={() => setTooltip(null)}
             />
           </g>
         );
       })}
+
+      {/* Connection tooltip */}
+      {tooltip && (
+        <g style={{ pointerEvents: 'none' }}>
+          <rect
+            x={tooltip.x - tooltip.text.length * 3.5 - 8}
+            y={tooltip.y - 30}
+            width={tooltip.text.length * 7 + 16}
+            height={20}
+            fill="rgba(0,0,0,0.85)"
+            rx={3}
+          />
+          <text
+            x={tooltip.x}
+            y={tooltip.y - 20}
+            textAnchor="middle"
+            dominantBaseline="middle"
+            fill="white"
+            fontSize={11}
+            fontFamily="Georgia, serif"
+          >
+            {tooltip.text}
+          </text>
+        </g>
+      )}
     </svg>
   );
 }
