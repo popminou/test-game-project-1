@@ -1,0 +1,474 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: #0d1117;
+  color: #e6e6e6;
+  font-family: 'Georgia', 'Times New Roman', serif;
+  height: 100vh;
+  overflow: hidden;
+}
+
+#root {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ---- Loading ---- */
+
+.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  font-size: 1.1rem;
+  color: #6a7f94;
+  letter-spacing: 1px;
+}
+
+/* ---- Lobby ---- */
+
+.lobby {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  background: radial-gradient(ellipse at 50% 40%, #1a2d42 0%, #0d1117 70%);
+}
+
+.lobby-card {
+  background: #131c27;
+  border: 1px solid #243448;
+  border-radius: 8px;
+  padding: 2.5rem 2.5rem 2rem;
+  width: 420px;
+  max-width: 95vw;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.6);
+}
+
+.lobby-card h1 {
+  font-size: 2rem;
+  color: #c9a227;
+  text-align: center;
+  letter-spacing: 3px;
+  margin-bottom: 0.3rem;
+}
+
+.lobby-subtitle {
+  text-align: center;
+  color: #556070;
+  font-size: 0.82rem;
+  font-style: italic;
+  margin-bottom: 1.75rem;
+}
+
+.join-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.name-input {
+  background: #0d1117;
+  border: 1px solid #243448;
+  border-radius: 4px;
+  padding: 0.65rem 0.9rem;
+  color: #e6e6e6;
+  font-size: 1rem;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.name-input:focus {
+  border-color: #c9a227;
+}
+
+.btn-join {
+  padding: 0.65rem 1.2rem;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.95rem;
+  font-family: inherit;
+  font-weight: bold;
+  letter-spacing: 0.5px;
+  background: #c9a227;
+  color: #0d1117;
+  transition: background 0.2s;
+}
+
+.btn-join:hover:not(:disabled) {
+  background: #e0b52e;
+}
+
+.btn-join:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.btn-start {
+  width: 100%;
+  padding: 0.75rem;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 1rem;
+  font-family: inherit;
+  font-weight: bold;
+  letter-spacing: 0.5px;
+  background: #27ae60;
+  color: #fff;
+  transition: background 0.2s;
+}
+
+.btn-start:hover:not(:disabled) {
+  background: #2ecc71;
+}
+
+.btn-start:disabled {
+  background: #1a4430;
+  color: #3a7a50;
+  cursor: not-allowed;
+}
+
+.error-message {
+  color: #e74c3c;
+  font-size: 0.85rem;
+  margin-bottom: 1rem;
+  padding: 0.5rem 0.75rem;
+  background: rgba(231, 76, 60, 0.1);
+  border-radius: 4px;
+  border-left: 3px solid #e74c3c;
+}
+
+.joined-waiting {
+  text-align: center;
+  color: #556070;
+  font-size: 0.9rem;
+  font-style: italic;
+  margin-bottom: 1.5rem;
+}
+
+.player-list-section {
+  margin-bottom: 1.5rem;
+}
+
+.player-list-section h3 {
+  font-size: 0.75rem;
+  color: #4a5d70;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.4rem;
+  border-bottom: 1px solid #1e2f42;
+}
+
+.player-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.player-list-item {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.35rem 0;
+}
+
+.color-dot {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.player-list-name {
+  flex: 1;
+  font-size: 0.9rem;
+  color: #c8d6e0;
+}
+
+.badge {
+  font-size: 0.68rem;
+  padding: 0.1rem 0.45rem;
+  border-radius: 3px;
+  font-weight: bold;
+  letter-spacing: 0.5px;
+}
+
+.badge-host {
+  background: #c9a227;
+  color: #0d1117;
+}
+
+.badge-you {
+  background: #1e3448;
+  color: #6da8cc;
+}
+
+.no-players-hint {
+  color: #3a4a5a;
+  font-size: 0.85rem;
+  font-style: italic;
+}
+
+.lobby-actions {
+  margin-top: 0.5rem;
+}
+
+.waiting-for-host {
+  text-align: center;
+  color: #4a5d70;
+  font-size: 0.85rem;
+  font-style: italic;
+}
+
+/* ---- Game Board ---- */
+
+.game-board {
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.map-container {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #0e161f;
+  padding: 0.75rem;
+  overflow: hidden;
+}
+
+/* ---- SVG Map ---- */
+
+.game-map {
+  width: 100%;
+  height: 100%;
+  max-height: calc(100vh - 1.5rem);
+  display: block;
+}
+
+.territory-polygon {
+  cursor: default;
+  transition: filter 0.15s;
+}
+
+.territory-polygon:hover {
+  filter: brightness(1.25);
+}
+
+.territory-label {
+  font-size: 11px;
+  font-family: 'Georgia', serif;
+  fill: rgba(255, 255, 255, 0.92);
+  stroke: rgba(0, 0, 0, 0.75);
+  stroke-width: 3px;
+  paint-order: stroke;
+  pointer-events: none;
+}
+
+/* ---- Player Panel ---- */
+
+.player-panel {
+  width: 232px;
+  flex-shrink: 0;
+  background: #131c27;
+  border-left: 1px solid #1e2f42;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.9rem 1rem 0.75rem;
+  border-bottom: 1px solid #1e2f42;
+}
+
+.panel-title {
+  font-size: 0.85rem;
+  color: #c9a227;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+}
+
+.turn-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.turn-label {
+  font-size: 0.6rem;
+  color: #3a4d5e;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.turn-number {
+  font-size: 1.3rem;
+  color: #c9a227;
+  font-weight: bold;
+  line-height: 1;
+}
+
+/* Current turn indicator */
+
+.current-turn-section {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #1e2f42;
+}
+
+.current-turn-box {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.6rem 0.7rem;
+  background: #0d1117;
+  border-radius: 5px;
+  border: 1px solid;
+}
+
+.ct-color-dot {
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.ct-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.ct-label {
+  font-size: 0.6rem;
+  color: #3a4d5e;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.ct-name {
+  font-size: 0.9rem;
+  color: #e6e6e6;
+  font-weight: bold;
+}
+
+.your-turn-tag {
+  font-size: 0.62rem;
+  font-weight: bold;
+  color: #c9a227;
+  letter-spacing: 1px;
+}
+
+/* Players list */
+
+.players-section {
+  padding: 0.75rem 1rem;
+  flex: 1;
+  border-bottom: 1px solid #1e2f42;
+}
+
+.players-section h3 {
+  font-size: 0.68rem;
+  color: #3a4d5e;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  margin-bottom: 0.6rem;
+}
+
+.players-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.player-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.5rem;
+  border-radius: 4px;
+  transition: background 0.15s;
+  font-size: 0.85rem;
+}
+
+.player-row.active-row {
+  background: #1a2838;
+}
+
+.color-stripe {
+  width: 4px;
+  height: 26px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.row-name {
+  flex: 1;
+  color: #b8c8d8;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.row-vp {
+  font-size: 0.72rem;
+  color: #3a4d5e;
+}
+
+.row-arrow {
+  color: #c9a227;
+  font-size: 0.68rem;
+}
+
+/* End turn section */
+
+.end-turn-section {
+  padding: 1rem;
+}
+
+.btn-end-turn {
+  width: 100%;
+  padding: 0.8rem;
+  background: #c9a227;
+  color: #0d1117;
+  font-size: 1rem;
+  font-weight: bold;
+  font-family: inherit;
+  letter-spacing: 1px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.1s;
+}
+
+.btn-end-turn:hover {
+  background: #e0b52e;
+}
+
+.btn-end-turn:active {
+  transform: scale(0.98);
+}
+
+.waiting-for-turn {
+  text-align: center;
+  color: #3a4d5e;
+  font-size: 0.82rem;
+  font-style: italic;
+  line-height: 1.5;
+}
