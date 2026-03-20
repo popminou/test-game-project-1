@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import type { Card } from '@test-project/iso';
 
 interface CardHandProps {
@@ -8,12 +8,116 @@ interface CardHandProps {
   onDiscard: (cardId: string) => void;
 }
 
+interface DragState {
+  cardId: string;
+  offsetX: number;
+  offsetY: number;
+  x: number;
+  y: number;
+  startX: number;
+  startY: number;
+}
+
+interface ReturnState {
+  cardId: string;
+  card: Card;
+  x: number;
+  y: number;
+  targetX: number;
+  targetY: number;
+  // false = at drop position (pre-transition), true = at hand position (animating)
+  active: boolean;
+}
+
+const DRAG_THRESHOLD = 5;
+
 export function CardHand({ cards, isMyTurn, onPlay, onDiscard }: CardHandProps) {
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
+  const [drag, setDrag] = useState<DragState | null>(null);
+  const [returning, setReturning] = useState<ReturnState | null>(null);
+  const cardRefs = useRef<Map<string, HTMLDivElement>>(new Map());
 
-  const handleCardClick = (cardId: string) => {
-    if (!isMyTurn) return;
-    setSelectedCardId((prev) => (prev === cardId ? null : cardId));
+  const isDragging = drag !== null &&
+    (Math.abs(drag.x - drag.startX) > DRAG_THRESHOLD || Math.abs(drag.y - drag.startY) > DRAG_THRESHOLD);
+
+  // Kick off the CSS transition on the next frame after the ghost is rendered at drop position
+  useEffect(() => {
+    if (returning && !returning.active) {
+      const raf = requestAnimationFrame(() => {
+        setReturning((prev) => prev ? { ...prev, active: true } : null);
+      });
+      return () => cancelAnimationFrame(raf);
+    }
+  }, [returning?.cardId, returning?.active]);
+
+  // Clear return state after animation completes
+  useEffect(() => {
+    if (!returning?.active) return;
+    const timer = setTimeout(() => setReturning(null), 250);
+    return () => clearTimeout(timer);
+  }, [returning?.active]);
+
+  useEffect(() => {
+    if (!drag) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      setDrag((prev) => prev ? { ...prev, x: e.clientX, y: e.clientY } : null);
+    };
+
+    const handleMouseUp = (e: MouseEvent) => {
+      setDrag((prev) => {
+        if (!prev) return null;
+
+        const moved = Math.abs(prev.x - prev.startX) > DRAG_THRESHOLD ||
+                      Math.abs(prev.y - prev.startY) > DRAG_THRESHOLD;
+
+        if (!moved && isMyTurn) {
+          setSelectedCardId((sel) => (sel === prev.cardId ? null : prev.cardId));
+          return null;
+        }
+
+        if (moved) {
+          // Find the original card element to get return target position
+          const cardEl = cardRefs.current.get(prev.cardId);
+          const card = cards.find((c) => c.id === prev.cardId);
+          if (cardEl && card) {
+            const rect = cardEl.getBoundingClientRect();
+            setReturning({
+              cardId: prev.cardId,
+              card,
+              x: e.clientX - prev.offsetX,
+              y: e.clientY - prev.offsetY,
+              targetX: rect.left,
+              targetY: rect.top,
+              active: false,
+            });
+          }
+        }
+
+        return null;
+      });
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [drag, isMyTurn, cards]);
+
+  const handleMouseDown = (e: React.MouseEvent, cardId: string) => {
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    setDrag({
+      cardId,
+      offsetX: e.clientX - rect.left,
+      offsetY: e.clientY - rect.top,
+      x: e.clientX,
+      y: e.clientY,
+      startX: e.clientX,
+      startY: e.clientY,
+    });
+    e.preventDefault();
   };
 
   const handlePlay = (cardId: string) => {
@@ -29,29 +133,82 @@ export function CardHand({ cards, isMyTurn, onPlay, onDiscard }: CardHandProps) 
   if (cards.length === 0) return null;
 
   return (
-    <div className="card-hand">
-      {cards.map((card) => (
-        <div key={card.id} className="card-wrapper">
+    <>
+      <div className="card-hand">
+        {cards.map((card) => {
+          const isBeingDragged = drag?.cardId === card.id && isDragging;
+          const isReturning = returning?.cardId === card.id;
+          return (
+            <div key={card.id} className="card-wrapper">
+              <div
+                ref={(el) => {
+                  if (el) cardRefs.current.set(card.id, el);
+                  else cardRefs.current.delete(card.id);
+                }}
+                className={`card card-type-${card.type}${!isMyTurn ? ' card-disabled' : ''}${selectedCardId === card.id ? ' card-selected' : ''}${isBeingDragged || isReturning ? ' card-dragging-source' : ''}`}
+                onMouseDown={(e) => handleMouseDown(e, card.id)}
+              >
+                <div className="card-type-band" />
+                <div className="card-name">{card.name}</div>
+                <div className="card-description">{card.description}</div>
+              </div>
+              {selectedCardId === card.id && !isDragging && (
+                <div className="card-actions">
+                  <button className="card-btn card-btn-play" onClick={() => handlePlay(card.id)}>
+                    Play
+                  </button>
+                  <button className="card-btn card-btn-discard" onClick={() => handleDiscard(card.id)}>
+                    Discard
+                  </button>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Floating drag ghost */}
+      {isDragging && drag && (() => {
+        const card = cards.find((c) => c.id === drag.cardId);
+        if (!card) return null;
+        return (
           <div
-            className={`card card-type-${card.type}${!isMyTurn ? ' card-disabled' : ''}${selectedCardId === card.id ? ' card-selected' : ''}`}
-            onClick={() => handleCardClick(card.id)}
+            className={`card card-type-${card.type} card-ghost`}
+            style={{
+              position: 'fixed',
+              left: drag.x - drag.offsetX,
+              top: drag.y - drag.offsetY,
+              pointerEvents: 'none',
+              zIndex: 1000,
+            }}
           >
             <div className="card-type-band" />
             <div className="card-name">{card.name}</div>
             <div className="card-description">{card.description}</div>
           </div>
-          {selectedCardId === card.id && (
-            <div className="card-actions">
-              <button className="card-btn card-btn-play" onClick={() => handlePlay(card.id)}>
-                Play
-              </button>
-              <button className="card-btn card-btn-discard" onClick={() => handleDiscard(card.id)}>
-                Discard
-              </button>
-            </div>
-          )}
+        );
+      })()}
+
+      {/* Returning ghost */}
+      {returning && (
+        <div
+          className={`card card-type-${returning.card.type} card-ghost card-returning`}
+          style={{
+            position: 'fixed',
+            left: returning.active ? returning.targetX : returning.x,
+            top: returning.active ? returning.targetY : returning.y,
+            pointerEvents: 'none',
+            zIndex: 1000,
+            transition: returning.active ? 'left 0.25s ease, top 0.25s ease, transform 0.25s ease, opacity 0.25s ease' : 'none',
+            transform: returning.active ? 'rotate(0deg)' : 'rotate(3deg)',
+            opacity: returning.active ? 0.3 : 0.9,
+          }}
+        >
+          <div className="card-type-band" />
+          <div className="card-name">{returning.card.name}</div>
+          <div className="card-description">{returning.card.description}</div>
         </div>
-      ))}
-    </div>
+      )}
+    </>
   );
 }

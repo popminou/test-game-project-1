@@ -701,6 +701,18 @@ body {
   cursor: default;
 }
 
+.card.card-dragging-source {
+  opacity: 0.3;
+  transform: none !important;
+}
+
+.card.card-ghost {
+  opacity: 0.9;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.7);
+  transform: rotate(3deg);
+  cursor: grabbing;
+}
+
 .card-type-band {
   height: 6px;
   flex-shrink: 0;
