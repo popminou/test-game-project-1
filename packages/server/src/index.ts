@@ -93,10 +93,6 @@ io.on('connection', (socket) => {
       socket.emit('game:error', 'Only the host can start the game');
       return;
     }
-    if (gameState.players.length < 2) {
-      socket.emit('game:error', 'Need at least 2 players to start');
-      return;
-    }
     gameState.phase = 'playing';
     gameState.turnNumber = 1;
     gameState.currentPlayerIndex = 0;

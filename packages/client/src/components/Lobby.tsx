@@ -15,7 +15,7 @@ export function Lobby({ gameState, myPlayerId, error, onJoin, onStart }: LobbyPr
 
   const hasJoined = myPlayerId !== null && gameState.players.some((p) => p.id === myPlayerId);
   const isHost = gameState.players.length > 0 && gameState.players[0].id === myPlayerId;
-  const canStart = isHost && gameState.players.length >= 2;
+  const canStart = isHost && gameState.players.length >= 1;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -45,7 +45,7 @@ export function Lobby({ gameState, myPlayerId, error, onJoin, onStart }: LobbyPr
             </button>
           </form>
         ) : (
-          <p className="joined-waiting">Waiting for players to join…</p>
+          <p className="joined-waiting">You&apos;ve joined! Start the game or wait for more players.</p>
         )}
 
         {error && <p className="error-message">{error}</p>}
@@ -78,9 +78,8 @@ export function Lobby({ gameState, myPlayerId, error, onJoin, onStart }: LobbyPr
                 className="btn-start"
                 onClick={onStart}
                 disabled={!canStart}
-                title={!canStart ? 'Need at least 2 players to start' : ''}
               >
-                {canStart ? 'Start Game' : 'Waiting for more players… (2+ needed)'}
+                Start Game
               </button>
             ) : (
               <p className="waiting-for-host">Waiting for the host to start the game…</p>
