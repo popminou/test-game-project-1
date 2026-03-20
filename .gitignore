@@ -4,3 +4,12 @@ dist/
 .env.local
 *.log
 .DS_Store
+
+# TypeScript incremental build cache
+*.tsbuildinfo
+
+# Compiled Vite config (generated from vite.config.ts)
+packages/client/vite.config.js
+packages/client/vite.config.js.map
+packages/client/vite.config.d.ts
+packages/client/vite.config.d.ts.map
