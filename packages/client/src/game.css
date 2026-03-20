@@ -440,6 +440,33 @@ body {
 
 .end-turn-section {
   padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.btn-move-armies {
+  width: 100%;
+  padding: 0.7rem;
+  background: #1e3a54;
+  color: #c9a227;
+  font-size: 0.9rem;
+  font-weight: bold;
+  font-family: inherit;
+  letter-spacing: 1px;
+  border: 2px solid #c9a227;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.btn-move-armies:hover {
+  background: #254d6e;
+}
+
+.btn-move-armies.active {
+  background: #c9a227;
+  color: #0d1117;
 }
 
 .btn-end-turn {
@@ -494,4 +521,73 @@ body {
   background: #3a1a1a;
   color: #c0504a;
   border-color: #c0504a;
+}
+
+/* Army move modals */
+
+.map-modal-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 10;
+  pointer-events: all;
+}
+
+.map-modal {
+  background: #131c27;
+  border: 1px solid #c9a227;
+  border-radius: 6px;
+  padding: 1.5rem 2rem;
+  min-width: 260px;
+  text-align: center;
+  color: #d0c090;
+  font-family: Georgia, serif;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.6);
+}
+
+.map-modal p {
+  margin: 0 0 1.2rem;
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+.map-modal-buttons {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: center;
+}
+
+.btn-confirm {
+  padding: 0.5rem 1.4rem;
+  background: #c9a227;
+  color: #0d1117;
+  font-weight: bold;
+  font-family: inherit;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-confirm:hover {
+  background: #e0b52e;
+}
+
+.btn-cancel {
+  padding: 0.5rem 1.4rem;
+  background: transparent;
+  color: #c9a227;
+  font-weight: bold;
+  font-family: inherit;
+  border: 1px solid #c9a227;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-cancel:hover {
+  background: rgba(201, 162, 39, 0.1);
 }

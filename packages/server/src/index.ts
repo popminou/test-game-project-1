@@ -14,6 +14,7 @@ import {
   PLAYER_COLOR_ORDER,
   TERRITORY_DEFS,
   generateTerritoryConnections,
+  areTerritoriesConnected,
 } from '@test-project/iso';
 
 const app = express();
@@ -42,6 +43,7 @@ function createInitialState(): GameState {
     players: [],
     territories: TERRITORY_DEFS.map((t): TerritoryState => ({ id: t.id, ownerId: null })),
     territoryConnections: [],
+    armies: [],
     currentPlayerIndex: 0,
     turnNumber: 0,
   };
@@ -98,6 +100,18 @@ io.on('connection', (socket) => {
     gameState.currentPlayerIndex = 0;
     gameState.territoryConnections = generateTerritoryConnections();
     console.log('[connections]', JSON.stringify(gameState.territoryConnections, null, 2));
+
+    // Randomly place 0–3 armies per territory per player
+    let armyCounter = 0;
+    for (const territory of TERRITORY_DEFS) {
+      for (const player of gameState.players) {
+        const count = Math.floor(Math.random() * 4);
+        for (let i = 0; i < count; i++) {
+          gameState.armies.push({ id: `a${++armyCounter}`, playerId: player.id, territoryId: territory.id });
+        }
+      }
+    }
+
     io.emit('game:state', gameState);
     console.log(`[start] Game started with ${gameState.players.length} players`);
   });
@@ -116,6 +130,44 @@ io.on('connection', (socket) => {
     console.log(
       `[turn] Now: ${gameState.players[gameState.currentPlayerIndex].name} (turn ${gameState.turnNumber})`,
     );
+  });
+
+  socket.on('army:move', ({ armyIds, toTerritoryId }, callback) => {
+    if (gameState.phase !== 'playing') {
+      callback({ success: false, error: 'Game is not in progress' });
+      return;
+    }
+    const current = gameState.players[gameState.currentPlayerIndex];
+    if (!current || current.id !== socket.id) {
+      callback({ success: false, error: 'It is not your turn' });
+      return;
+    }
+    // Validate all armies exist, belong to this player, and are on the same territory
+    const armies = armyIds.map((id) => gameState.armies.find((a) => a.id === id));
+    if (armies.some((a) => !a)) {
+      callback({ success: false, error: 'One or more armies not found' });
+      return;
+    }
+    const validArmies = armies as NonNullable<(typeof gameState.armies)[number]>[];
+    if (validArmies.some((a) => a.playerId !== socket.id)) {
+      callback({ success: false, error: 'You do not own all selected armies' });
+      return;
+    }
+    const fromTerritoryId = validArmies[0].territoryId;
+    if (validArmies.some((a) => a.territoryId !== fromTerritoryId)) {
+      callback({ success: false, error: 'All armies must be on the same territory' });
+      return;
+    }
+    if (!areTerritoriesConnected(gameState.territoryConnections, fromTerritoryId, toTerritoryId)) {
+      callback({ success: false, error: 'Territories are not connected' });
+      return;
+    }
+    for (const army of validArmies) {
+      army.territoryId = toTerritoryId;
+    }
+    io.emit('game:state', gameState);
+    callback({ success: true });
+    console.log(`[army:move] ${socket.id} moved ${armyIds.length} armies from ${fromTerritoryId} to ${toTerritoryId}`);
   });
 
   socket.on('disconnect', () => {

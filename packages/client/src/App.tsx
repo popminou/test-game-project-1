@@ -41,6 +41,14 @@ export function App() {
 
   const handleStart = () => socket?.emit('game:start');
   const handleEndTurn = () => socket?.emit('turn:end');
+  const handleArmyMove = (armyIds: string[], toTerritoryId: string) => {
+    socket?.emit('army:move', { armyIds, toTerritoryId }, (res) => {
+      if (!res.success) {
+        setError(res.error ?? 'Move failed');
+        setTimeout(() => setError(null), 4000);
+      }
+    });
+  };
   const handleLeave = () => {
     socket?.disconnect();
     setMyPlayerId(null);
@@ -67,6 +75,6 @@ export function App() {
 
   // myPlayerId is non-null here because hasJoined requires it
   return (
-    <GameBoard gameState={gameState} myPlayerId={myPlayerId!} onEndTurn={handleEndTurn} onLeave={handleLeave} />
+    <GameBoard gameState={gameState} myPlayerId={myPlayerId!} onEndTurn={handleEndTurn} onLeave={handleLeave} onArmyMove={handleArmyMove} />
   );
 }

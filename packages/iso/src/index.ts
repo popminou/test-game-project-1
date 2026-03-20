@@ -40,13 +40,25 @@ export interface TerritoryState {
   ownerId: string | null;
 }
 
+export interface Army {
+  id: string;
+  playerId: string;
+  territoryId: string;
+}
+
 export interface GameState {
   phase: GamePhase;
   players: Player[];
   territories: TerritoryState[];
   territoryConnections: TerritoryConnection[];
+  armies: Army[];
   currentPlayerIndex: number;
   turnNumber: number;
+}
+
+export interface ArmyMovePayload {
+  armyIds: string[];
+  toTerritoryId: string;
 }
 
 // ---- Socket Event Types ----
@@ -63,6 +75,10 @@ export interface ClientToServerEvents {
   ) => void;
   'game:start': () => void;
   'turn:end': () => void;
+  'army:move': (
+    payload: ArmyMovePayload,
+    callback: (response: { success: boolean; error?: string }) => void,
+  ) => void;
 }
 
 // ---- Static Map Definition ----
@@ -131,6 +147,16 @@ export function generateTerritoryConnections(): TerritoryConnection[] {
   }
 
   return connections;
+}
+
+export function areTerritoriesConnected(
+  connections: TerritoryConnection[],
+  a: string,
+  b: string,
+): boolean {
+  return connections.some(
+    (c) => (c.fromId === a && c.toId === b) || (c.fromId === b && c.toId === a),
+  );
 }
 
 export const MAP_WIDTH = 800;
