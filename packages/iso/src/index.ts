@@ -44,6 +44,7 @@ export interface GameState {
   phase: GamePhase;
   players: Player[];
   territories: TerritoryState[];
+  territoryConnections: TerritoryConnection[];
   currentPlayerIndex: number;
   turnNumber: number;
 }
@@ -73,7 +74,63 @@ export interface TerritoryDef {
   points: [number, number][];
   /** Center position for the name label */
   labelPos: [number, number];
-  adjacentIds: string[];
+}
+
+export interface TerritoryConnection {
+  fromId: string;
+  toId: string;
+  type: 'primary' | 'secondary';
+}
+
+/** Maps territory id to [col, row] position in the 3×4 grid */
+export const TERRITORY_GRID: Record<string, [number, number]> = {
+  t1: [0, 0], t2: [1, 0], t3: [2, 0],
+  t4: [0, 1], t5: [1, 1], t6: [2, 1],
+  t7: [0, 2], t8: [1, 2], t9: [2, 2],
+  t10: [0, 3], t11: [1, 3], t12: [2, 3],
+};
+
+export function generateTerritoryConnections(): TerritoryConnection[] {
+  const ids = Object.keys(TERRITORY_GRID);
+  const connections: TerritoryConnection[] = [];
+
+  for (let i = 0; i < ids.length; i++) {
+    for (let j = i + 1; j < ids.length; j++) {
+      const [ac, ar] = TERRITORY_GRID[ids[i]];
+      const [bc, br] = TERRITORY_GRID[ids[j]];
+      const dc = Math.abs(ac - bc);
+      const dr = Math.abs(ar - br);
+
+      if ((dc === 0 && dr === 1) || (dc === 1 && dr === 0)) {
+        if (Math.random() < 0.5) {
+          connections.push({ fromId: ids[i], toId: ids[j], type: 'primary' });
+        }
+      } else if (dc === 1 && dr === 1) {
+        if (Math.random() < 0.25) {
+          connections.push({ fromId: ids[i], toId: ids[j], type: 'secondary' });
+        }
+      }
+    }
+  }
+
+  // Ensure every territory has at least one connection
+  for (const id of ids) {
+    const hasConnection = connections.some((c) => c.fromId === id || c.toId === id);
+    if (hasConnection) continue;
+
+    // Pick a random cardinal neighbor and force a primary connection
+    const [ac, ar] = TERRITORY_GRID[id];
+    const cardinalNeighbors = ids.filter((otherId) => {
+      const [bc, br] = TERRITORY_GRID[otherId];
+      const dc = Math.abs(ac - bc);
+      const dr = Math.abs(ar - br);
+      return (dc === 0 && dr === 1) || (dc === 1 && dr === 0);
+    });
+    const pick = cardinalNeighbors[Math.floor(Math.random() * cardinalNeighbors.length)];
+    connections.push({ fromId: id, toId: pick, type: 'primary' });
+  }
+
+  return connections;
 }
 
 export const MAP_WIDTH = 800;
@@ -101,7 +158,6 @@ export const TERRITORY_DEFS: TerritoryDef[] = [
       [170, 152], [80, 140], [0, 148],
     ],
     labelPos: [126, 76],
-    adjacentIds: ['t2', 't4'],
   },
   {
     id: 't2',
@@ -111,7 +167,6 @@ export const TERRITORY_DEFS: TerritoryDef[] = [
       [430, 144], [320, 158], [245, 148], [240, 80],
     ],
     labelPos: [395, 76],
-    adjacentIds: ['t1', 't3', 't5'],
   },
   {
     id: 't3',
@@ -121,7 +176,6 @@ export const TERRITORY_DEFS: TerritoryDef[] = [
       [720, 145], [620, 160], [532, 152], [525, 76],
     ],
     labelPos: [666, 76],
-    adjacentIds: ['t2', 't6'],
   },
 
   // ---- Row 2: Upper-middle territories ----
@@ -134,7 +188,6 @@ export const TERRITORY_DEFS: TerritoryDef[] = [
       [175, 285], [85, 298], [0, 292],
     ],
     labelPos: [125, 220],
-    adjacentIds: ['t1', 't5', 't7'],
   },
   {
     id: 't5',
@@ -146,7 +199,6 @@ export const TERRITORY_DEFS: TerritoryDef[] = [
       [255, 220],
     ],
     labelPos: [393, 218],
-    adjacentIds: ['t2', 't4', 't6', 't8'],
   },
   {
     id: 't6',
@@ -158,7 +210,6 @@ export const TERRITORY_DEFS: TerritoryDef[] = [
       [540, 220],
     ],
     labelPos: [666, 218],
-    adjacentIds: ['t3', 't5', 't9'],
   },
 
   // ---- Row 3: Lower-middle territories ----
@@ -171,7 +222,6 @@ export const TERRITORY_DEFS: TerritoryDef[] = [
       [180, 425], [90, 438], [0, 432],
     ],
     labelPos: [126, 362],
-    adjacentIds: ['t4', 't8', 't10'],
   },
   {
     id: 't8',
@@ -183,7 +233,6 @@ export const TERRITORY_DEFS: TerritoryDef[] = [
       [245, 360],
     ],
     labelPos: [397, 360],
-    adjacentIds: ['t5', 't7', 't9', 't11'],
   },
   {
     id: 't9',
@@ -195,7 +244,6 @@ export const TERRITORY_DEFS: TerritoryDef[] = [
       [545, 360],
     ],
     labelPos: [668, 360],
-    adjacentIds: ['t6', 't8', 't12'],
   },
 
   // ---- Row 4: Southern territories ----
@@ -208,7 +256,6 @@ export const TERRITORY_DEFS: TerritoryDef[] = [
       [0, 540],
     ],
     labelPos: [130, 486],
-    adjacentIds: ['t7', 't11'],
   },
   {
     id: 't11',
@@ -219,7 +266,6 @@ export const TERRITORY_DEFS: TerritoryDef[] = [
       [262, 540], [260, 490],
     ],
     labelPos: [402, 486],
-    adjacentIds: ['t8', 't10', 't12'],
   },
   {
     id: 't12',
@@ -230,6 +276,5 @@ export const TERRITORY_DEFS: TerritoryDef[] = [
       [548, 540], [550, 490],
     ],
     labelPos: [672, 486],
-    adjacentIds: ['t9', 't11'],
   },
 ];

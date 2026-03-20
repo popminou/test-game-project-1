@@ -13,6 +13,7 @@ import {
   type ClientToServerEvents,
   PLAYER_COLOR_ORDER,
   TERRITORY_DEFS,
+  generateTerritoryConnections,
 } from '@test-project/iso';
 
 const app = express();
@@ -40,6 +41,7 @@ function createInitialState(): GameState {
     phase: 'lobby',
     players: [],
     territories: TERRITORY_DEFS.map((t): TerritoryState => ({ id: t.id, ownerId: null })),
+    territoryConnections: [],
     currentPlayerIndex: 0,
     turnNumber: 0,
   };
@@ -98,6 +100,8 @@ io.on('connection', (socket) => {
     gameState.phase = 'playing';
     gameState.turnNumber = 1;
     gameState.currentPlayerIndex = 0;
+    gameState.territoryConnections = generateTerritoryConnections();
+    console.log('[connections]', JSON.stringify(gameState.territoryConnections, null, 2));
     io.emit('game:state', gameState);
     console.log(`[start] Game started with ${gameState.players.length} players`);
   });
