@@ -1,5 +1,9 @@
 # CLAUDE.md - Project Workflow Guide
 
+## Project Overview
+
+This is a risk-like game where 2-4 players compete for territorial domination of a map. Using turn-based mechanics, players will manage resources, create and move armies, and fight battles to accumulate the most victory points to win the game.
+
 ## Quick Start
 
 ```bash
