@@ -41,6 +41,11 @@ export function App() {
 
   const handleStart = () => socket?.emit('game:start');
   const handleEndTurn = () => socket?.emit('turn:end');
+  const handleLeave = () => {
+    socket?.disconnect();
+    setMyPlayerId(null);
+    socket?.connect();
+  };
 
   if (!gameState) {
     return <div className="loading">Connecting to server…</div>;
@@ -62,6 +67,6 @@ export function App() {
 
   // myPlayerId is non-null here because hasJoined requires it
   return (
-    <GameBoard gameState={gameState} myPlayerId={myPlayerId!} onEndTurn={handleEndTurn} />
+    <GameBoard gameState={gameState} myPlayerId={myPlayerId!} onEndTurn={handleEndTurn} onLeave={handleLeave} />
   );
 }

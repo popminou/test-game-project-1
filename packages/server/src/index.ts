@@ -126,6 +126,7 @@ io.on('connection', (socket) => {
     gameState.players = gameState.players.filter((p) => p.id !== socket.id);
 
     if (gameState.players.length === 0) {
+      console.log('[end] Last player left — game instance reset');
       gameState = createInitialState();
     } else {
       // Reassign colors to keep them contiguous

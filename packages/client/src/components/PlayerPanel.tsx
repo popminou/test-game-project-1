@@ -5,9 +5,10 @@ interface PlayerPanelProps {
   gameState: GameState;
   myPlayerId: string;
   onEndTurn: () => void;
+  onLeave: () => void;
 }
 
-export function PlayerPanel({ gameState, myPlayerId, onEndTurn }: PlayerPanelProps) {
+export function PlayerPanel({ gameState, myPlayerId, onEndTurn, onLeave }: PlayerPanelProps) {
   const currentPlayer = gameState.players[gameState.currentPlayerIndex];
   const isMyTurn = currentPlayer?.id === myPlayerId;
 
@@ -82,6 +83,13 @@ export function PlayerPanel({ gameState, myPlayerId, onEndTurn }: PlayerPanelPro
             <strong>{currentPlayer?.name}</strong>…
           </p>
         )}
+      </div>
+
+      {/* Leave game */}
+      <div className="leave-section">
+        <button className="btn-leave" onClick={onLeave}>
+          Leave Game
+        </button>
       </div>
     </div>
   );

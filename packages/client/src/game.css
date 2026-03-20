@@ -472,3 +472,26 @@ body {
   font-style: italic;
   line-height: 1.5;
 }
+
+.leave-section {
+  padding: 0 1rem 1rem;
+}
+
+.btn-leave {
+  width: 100%;
+  padding: 0.5rem;
+  background: transparent;
+  color: #5a6a7a;
+  font-size: 0.85rem;
+  font-family: inherit;
+  border: 1px solid #2a3a4a;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.btn-leave:hover {
+  background: #3a1a1a;
+  color: #c0504a;
+  border-color: #c0504a;
+}
