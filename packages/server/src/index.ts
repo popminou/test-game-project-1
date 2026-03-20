@@ -8,6 +8,8 @@ import {
   type HealthStatus,
   type GameState,
   type Player,
+  type Card,
+  type CardType,
   type TerritoryState,
   type ServerToClientEvents,
   type ClientToServerEvents,
@@ -35,6 +37,32 @@ app.get(API_ROUTES.health, (_req, res) => {
   res.json(response);
 });
 
+// ---- Card System ----
+
+const CARD_DEFINITIONS: { type: CardType; name: string; description: string }[] = [
+  { type: 'reinforce', name: 'Reinforcements', description: 'Summon additional armies to any territory you control.' },
+  { type: 'fortify', name: 'Fortify', description: 'Strengthen your defenses on a territory.' },
+  { type: 'raid', name: 'Raid', description: 'Launch a surprise attack on an adjacent enemy territory.' },
+  { type: 'diplomacy', name: 'Diplomacy', description: 'Negotiate a temporary truce with another player.' },
+];
+
+function createDeck(): Card[] {
+  const deck: Card[] = [];
+  let counter = 0;
+  // 8 cards per type = 32 total
+  for (let i = 0; i < 8; i++) {
+    for (const def of CARD_DEFINITIONS) {
+      deck.push({ id: `card-${++counter}`, ...def });
+    }
+  }
+  // Fisher-Yates shuffle
+  for (let i = deck.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [deck[i], deck[j]] = [deck[j], deck[i]];
+  }
+  return deck;
+}
+
 // ---- Game State ----
 
 function createInitialState(): GameState {
@@ -46,6 +74,7 @@ function createInitialState(): GameState {
     armies: [],
     currentPlayerIndex: 0,
     turnNumber: 0,
+    deck: [],
   };
 }
 
@@ -81,6 +110,7 @@ io.on('connection', (socket) => {
       victoryPoints: 0,
       maxActionPoints: 3,
       currentActionPoints: 3,
+      hand: [],
     };
     gameState.players.push(player);
     callback({ success: true, playerId: socket.id });
@@ -101,7 +131,13 @@ io.on('connection', (socket) => {
     gameState.turnNumber = 1;
     gameState.currentPlayerIndex = 0;
     gameState.territoryConnections = generateTerritoryConnections();
+    gameState.deck = createDeck();
     console.log('[connections]', JSON.stringify(gameState.territoryConnections, null, 2));
+
+    // Deal 5 cards to each player
+    for (const player of gameState.players) {
+      player.hand = gameState.deck.splice(0, 5);
+    }
 
     // Randomly place 0–3 armies per territory per player
     let armyCounter = 0;
@@ -178,6 +214,70 @@ io.on('connection', (socket) => {
     io.emit('game:state', gameState);
     callback({ success: true });
     console.log(`[army:move] ${socket.id} moved ${armyIds.length} armies from ${fromTerritoryId} to ${toTerritoryId}`);
+  });
+
+  socket.on('card:play', ({ cardId }, callback) => {
+    if (gameState.phase !== 'playing') {
+      callback({ success: false, error: 'Game is not in progress' });
+      return;
+    }
+    const player = gameState.players.find((p) => p.id === socket.id);
+    if (!player) {
+      callback({ success: false, error: 'Player not found' });
+      return;
+    }
+    const cardIndex = player.hand.findIndex((c) => c.id === cardId);
+    if (cardIndex === -1) {
+      callback({ success: false, error: 'Card not in hand' });
+      return;
+    }
+    const [card] = player.hand.splice(cardIndex, 1);
+    io.emit('game:state', gameState);
+    callback({ success: true });
+    console.log(`[card:play] ${player.name} played ${card.name}`);
+  });
+
+  socket.on('card:discard', ({ cardId }, callback) => {
+    if (gameState.phase !== 'playing') {
+      callback({ success: false, error: 'Game is not in progress' });
+      return;
+    }
+    const player = gameState.players.find((p) => p.id === socket.id);
+    if (!player) {
+      callback({ success: false, error: 'Player not found' });
+      return;
+    }
+    const cardIndex = player.hand.findIndex((c) => c.id === cardId);
+    if (cardIndex === -1) {
+      callback({ success: false, error: 'Card not in hand' });
+      return;
+    }
+    const [card] = player.hand.splice(cardIndex, 1);
+    gameState.deck.push(card);
+    io.emit('game:state', gameState);
+    callback({ success: true });
+    console.log(`[card:discard] ${player.name} discarded ${card.name}`);
+  });
+
+  socket.on('card:draw', (callback) => {
+    if (gameState.phase !== 'playing') {
+      callback({ success: false, error: 'Game is not in progress' });
+      return;
+    }
+    const player = gameState.players.find((p) => p.id === socket.id);
+    if (!player) {
+      callback({ success: false, error: 'Player not found' });
+      return;
+    }
+    if (gameState.deck.length === 0) {
+      callback({ success: false, error: 'Deck is empty' });
+      return;
+    }
+    const card = gameState.deck.shift()!;
+    player.hand.push(card);
+    io.emit('game:state', gameState);
+    callback({ success: true });
+    console.log(`[card:draw] ${player.name} drew ${card.name}`);
   });
 
   socket.on('disconnect', () => {

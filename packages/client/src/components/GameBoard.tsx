@@ -3,6 +3,7 @@ import type { GameState } from '@test-project/iso';
 import { GameMap } from './GameMap';
 import { PlayerPanel } from './PlayerPanel';
 import { PlayerBar } from './PlayerBar';
+import { CardHand } from './CardHand';
 
 interface GameBoardProps {
   gameState: GameState;
@@ -10,9 +11,11 @@ interface GameBoardProps {
   onEndTurn: () => void;
   onLeave: () => void;
   onArmyMove: (armyIds: string[], toTerritoryId: string) => void;
+  onCardPlay: (cardId: string) => void;
+  onCardDiscard: (cardId: string) => void;
 }
 
-export function GameBoard({ gameState, myPlayerId, onEndTurn, onLeave, onArmyMove }: GameBoardProps) {
+export function GameBoard({ gameState, myPlayerId, onEndTurn, onLeave, onArmyMove, onCardPlay, onCardDiscard }: GameBoardProps) {
   const [moveMode, setMoveMode] = useState(false);
 
   const currentPlayer = gameState.players[gameState.currentPlayerIndex];
@@ -48,6 +51,14 @@ export function GameBoard({ gameState, myPlayerId, onEndTurn, onLeave, onArmyMov
             onArmyMove={onArmyMove}
           />
         </div>
+        {myPlayer && (
+          <CardHand
+            cards={myPlayer.hand}
+            isMyTurn={isMyTurn}
+            onPlay={onCardPlay}
+            onDiscard={onCardDiscard}
+          />
+        )}
       </div>
       <PlayerPanel
         gameState={gameState}

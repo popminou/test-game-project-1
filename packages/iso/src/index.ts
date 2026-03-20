@@ -15,6 +15,15 @@ export const API_ROUTES = {
 
 // ---- Game Types ----
 
+export type CardType = 'reinforce' | 'fortify' | 'raid' | 'diplomacy';
+
+export interface Card {
+  id: string;
+  type: CardType;
+  name: string;
+  description: string;
+}
+
 export type PlayerColor = 'red' | 'blue' | 'green' | 'yellow';
 
 export const PLAYER_COLOR_VALUES: Record<PlayerColor, string> = {
@@ -33,6 +42,7 @@ export interface Player {
   victoryPoints: number;
   maxActionPoints: number;
   currentActionPoints: number;
+  hand: Card[];
 }
 
 export type GamePhase = 'lobby' | 'playing' | 'ended';
@@ -56,11 +66,20 @@ export interface GameState {
   armies: Army[];
   currentPlayerIndex: number;
   turnNumber: number;
+  deck: Card[];
 }
 
 export interface ArmyMovePayload {
   armyIds: string[];
   toTerritoryId: string;
+}
+
+export interface CardPlayPayload {
+  cardId: string;
+}
+
+export interface CardDiscardPayload {
+  cardId: string;
 }
 
 // ---- Socket Event Types ----
@@ -79,6 +98,17 @@ export interface ClientToServerEvents {
   'turn:end': () => void;
   'army:move': (
     payload: ArmyMovePayload,
+    callback: (response: { success: boolean; error?: string }) => void,
+  ) => void;
+  'card:play': (
+    payload: CardPlayPayload,
+    callback: (response: { success: boolean; error?: string }) => void,
+  ) => void;
+  'card:discard': (
+    payload: CardDiscardPayload,
+    callback: (response: { success: boolean; error?: string }) => void,
+  ) => void;
+  'card:draw': (
     callback: (response: { success: boolean; error?: string }) => void,
   ) => void;
 }
