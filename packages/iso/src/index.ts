@@ -31,6 +31,8 @@ export interface Player {
   name: string;
   color: PlayerColor;
   victoryPoints: number;
+  maxActionPoints: number;
+  currentActionPoints: number;
 }
 
 export type GamePhase = 'lobby' | 'playing' | 'ended';

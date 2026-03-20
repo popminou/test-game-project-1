@@ -13,6 +13,8 @@ interface PlayerPanelProps {
 export function PlayerPanel({ gameState, myPlayerId, moveMode, onToggleMoveMode, onEndTurn, onLeave }: PlayerPanelProps) {
   const currentPlayer = gameState.players[gameState.currentPlayerIndex];
   const isMyTurn = currentPlayer?.id === myPlayerId;
+  const myPlayer = gameState.players.find((p) => p.id === myPlayerId);
+  const hasAP = (myPlayer?.currentActionPoints ?? 0) > 0;
 
   return (
     <div className="player-panel">
@@ -79,6 +81,7 @@ export function PlayerPanel({ gameState, myPlayerId, moveMode, onToggleMoveMode,
             <button
               className={`btn-move-armies${moveMode ? ' active' : ''}`}
               onClick={onToggleMoveMode}
+              disabled={!moveMode && !hasAP}
             >
               {moveMode ? 'Cancel Move' : 'Move Armies'}
             </button>

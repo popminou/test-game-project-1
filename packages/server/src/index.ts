@@ -79,6 +79,8 @@ io.on('connection', (socket) => {
       name: trimmed,
       color: PLAYER_COLOR_ORDER[gameState.players.length],
       victoryPoints: 0,
+      maxActionPoints: 3,
+      currentActionPoints: 3,
     };
     gameState.players.push(player);
     callback({ success: true, playerId: socket.id });
@@ -126,6 +128,9 @@ io.on('connection', (socket) => {
     gameState.currentPlayerIndex =
       (gameState.currentPlayerIndex + 1) % gameState.players.length;
     if (gameState.currentPlayerIndex === 0) gameState.turnNumber++;
+    // Restore action points for the player whose turn is starting
+    const next = gameState.players[gameState.currentPlayerIndex];
+    next.currentActionPoints = next.maxActionPoints;
     io.emit('game:state', gameState);
     console.log(
       `[turn] Now: ${gameState.players[gameState.currentPlayerIndex].name} (turn ${gameState.turnNumber})`,
@@ -140,6 +145,10 @@ io.on('connection', (socket) => {
     const current = gameState.players[gameState.currentPlayerIndex];
     if (!current || current.id !== socket.id) {
       callback({ success: false, error: 'It is not your turn' });
+      return;
+    }
+    if (current.currentActionPoints <= 0) {
+      callback({ success: false, error: 'No action points remaining' });
       return;
     }
     // Validate all armies exist, belong to this player, and are on the same territory
@@ -165,6 +174,7 @@ io.on('connection', (socket) => {
     for (const army of validArmies) {
       army.territoryId = toTerritoryId;
     }
+    current.currentActionPoints--;
     io.emit('game:state', gameState);
     callback({ success: true });
     console.log(`[army:move] ${socket.id} moved ${armyIds.length} armies from ${fromTerritoryId} to ${toTerritoryId}`);

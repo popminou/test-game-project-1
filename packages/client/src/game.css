@@ -243,11 +243,57 @@ body {
 .map-container {
   flex: 1;
   display: flex;
+  flex-direction: column;
+  background: #0e161f;
+  overflow: hidden;
+}
+
+.map-inner {
+  flex: 1;
+  display: flex;
   align-items: center;
   justify-content: center;
-  background: #0e161f;
   padding: 0.75rem;
   overflow: hidden;
+  min-height: 0;
+}
+
+/* ---- Action Points Bar ---- */
+
+.ap-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.4rem 1rem;
+  background: rgba(10, 16, 23, 0.85);
+  border-bottom: 1px solid #1e3a54;
+  flex-shrink: 0;
+}
+
+.ap-label {
+  font-size: 0.75rem;
+  color: #6a8fa8;
+  font-family: Georgia, serif;
+  white-space: nowrap;
+}
+
+.ap-dots {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.ap-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid white;
+  background: transparent;
+  box-sizing: border-box;
+}
+
+.ap-dot--filled {
+  background: #2980b9;
 }
 
 /* ---- SVG Map ---- */
