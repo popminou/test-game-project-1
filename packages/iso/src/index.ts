@@ -161,8 +161,8 @@ export function areTerritoriesConnected(
   );
 }
 
-export const MAP_WIDTH = 800;
-export const MAP_HEIGHT = 540;
+export const MAP_WIDTH = 700;
+export const MAP_HEIGHT = 400;
 
 /**
  * 12 territories arranged in a 3×4 grid with irregular shared borders.
