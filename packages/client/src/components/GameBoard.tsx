@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import type { GameState } from '@test-project/iso';
 import { GameMap } from './GameMap';
 import { PlayerPanel } from './PlayerPanel';
-import { ActionPointsBar } from './ActionPointsBar';
+import { PlayerBar } from './PlayerBar';
 
 interface GameBoardProps {
   gameState: GameState;
@@ -32,7 +32,7 @@ export function GameBoard({ gameState, myPlayerId, onEndTurn, onLeave, onArmyMov
     <div className="game-board">
       <div className="map-container">
         {gameState.phase === 'playing' && currentPlayer && (
-          <ActionPointsBar
+          <PlayerBar
             player={currentPlayer}
             isMyTurn={isMyTurn}
             moveMode={moveMode}
