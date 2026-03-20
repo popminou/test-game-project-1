@@ -4,17 +4,13 @@ import { PLAYER_COLOR_VALUES } from '@test-project/iso';
 interface PlayerPanelProps {
   gameState: GameState;
   myPlayerId: string;
-  moveMode: boolean;
-  onToggleMoveMode: () => void;
   onEndTurn: () => void;
   onLeave: () => void;
 }
 
-export function PlayerPanel({ gameState, myPlayerId, moveMode, onToggleMoveMode, onEndTurn, onLeave }: PlayerPanelProps) {
+export function PlayerPanel({ gameState, myPlayerId, onEndTurn, onLeave }: PlayerPanelProps) {
   const currentPlayer = gameState.players[gameState.currentPlayerIndex];
   const isMyTurn = currentPlayer?.id === myPlayerId;
-  const myPlayer = gameState.players.find((p) => p.id === myPlayerId);
-  const hasAP = (myPlayer?.currentActionPoints ?? 0) > 0;
 
   return (
     <div className="player-panel">
@@ -77,18 +73,9 @@ export function PlayerPanel({ gameState, myPlayerId, moveMode, onToggleMoveMode,
       {/* End turn / waiting */}
       <div className="end-turn-section">
         {isMyTurn ? (
-          <>
-            <button
-              className={`btn-move-armies${moveMode ? ' active' : ''}`}
-              onClick={onToggleMoveMode}
-              disabled={!moveMode && !hasAP}
-            >
-              {moveMode ? 'Cancel Move' : 'Move Armies'}
-            </button>
-            <button className="btn-end-turn" onClick={onEndTurn}>
-              End Turn
-            </button>
-          </>
+          <button className="btn-end-turn" onClick={onEndTurn}>
+            End Turn
+          </button>
         ) : (
           <p className="waiting-for-turn">
             Waiting for

@@ -32,7 +32,13 @@ export function GameBoard({ gameState, myPlayerId, onEndTurn, onLeave, onArmyMov
     <div className="game-board">
       <div className="map-container">
         {gameState.phase === 'playing' && currentPlayer && (
-          <ActionPointsBar player={currentPlayer} isMyTurn={isMyTurn} />
+          <ActionPointsBar
+            player={currentPlayer}
+            isMyTurn={isMyTurn}
+            moveMode={moveMode}
+            hasAP={(myPlayer?.currentActionPoints ?? 0) > 0}
+            onToggleMoveMode={toggleMoveMode}
+          />
         )}
         <div className="map-inner">
           <GameMap
@@ -46,8 +52,6 @@ export function GameBoard({ gameState, myPlayerId, onEndTurn, onLeave, onArmyMov
       <PlayerPanel
         gameState={gameState}
         myPlayerId={myPlayerId}
-        moveMode={moveMode}
-        onToggleMoveMode={toggleMoveMode}
         onEndTurn={onEndTurn}
         onLeave={onLeave}
       />
