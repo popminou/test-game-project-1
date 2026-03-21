@@ -222,21 +222,26 @@ io.on('connection', (socket) => {
       callback({ success: false, error: 'Game is not in progress' });
       return;
     }
-    const player = gameState.players.find((p) => p.id === socket.id);
-    if (!player) {
-      callback({ success: false, error: 'Player not found' });
+    const current = gameState.players[gameState.currentPlayerIndex];
+    if (!current || current.id !== socket.id) {
+      callback({ success: false, error: 'It is not your turn' });
       return;
     }
-    const cardIndex = player.hand.findIndex((c) => c.id === cardId);
+    if (current.currentActionPoints <= 0) {
+      callback({ success: false, error: 'No action points remaining' });
+      return;
+    }
+    const cardIndex = current.hand.findIndex((c) => c.id === cardId);
     if (cardIndex === -1) {
       callback({ success: false, error: 'Card not in hand' });
       return;
     }
-    const [card] = player.hand.splice(cardIndex, 1);
+    const [card] = current.hand.splice(cardIndex, 1);
+    current.currentActionPoints--;
     gameState.playedCards.push(card);
     io.emit('game:state', gameState);
     callback({ success: true });
-    console.log(`[card:play] ${player.name} played ${card.name}`);
+    console.log(`[card:play] ${current.name} played ${card.name}`);
   });
 
   socket.on('card:discard', ({ cardId }, callback) => {

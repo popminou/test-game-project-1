@@ -58,6 +58,7 @@ export function GameBoard({ gameState, myPlayerId, onEndTurn, onLeave, onArmyMov
           <CardHand
             cards={myPlayer.hand}
             isMyTurn={isMyTurn}
+            hasAP={(myPlayer.currentActionPoints ?? 0) > 0}
             mapInnerRef={mapInnerRef}
             onPlay={onCardPlay}
             onDiscard={onCardDiscard}

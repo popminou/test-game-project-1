@@ -4,6 +4,7 @@ import type { Card } from '@test-project/iso';
 interface CardHandProps {
   cards: Card[];
   isMyTurn: boolean;
+  hasAP: boolean;
   mapInnerRef: React.RefObject<HTMLDivElement | null>;
   onPlay: (cardId: string) => void;
   onDiscard: (cardId: string) => void;
@@ -32,7 +33,7 @@ interface ReturnState {
 
 const DRAG_THRESHOLD = 5;
 
-export function CardHand({ cards, isMyTurn, mapInnerRef, onPlay, onDiscard }: CardHandProps) {
+export function CardHand({ cards, isMyTurn, hasAP, mapInnerRef, onPlay, onDiscard }: CardHandProps) {
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
   const [drag, setDrag] = useState<DragState | null>(null);
   const [returning, setReturning] = useState<ReturnState | null>(null);
@@ -91,7 +92,7 @@ export function CardHand({ cards, isMyTurn, mapInnerRef, onPlay, onDiscard }: Ca
             e.clientX >= mapRect.left && e.clientX <= mapRect.right &&
             e.clientY >= mapRect.top && e.clientY <= mapRect.bottom;
 
-          if (droppedOnMap && isMyTurn) {
+          if (droppedOnMap && isMyTurn && hasAP) {
             onPlay(prev.cardId);
             return null;
           }
@@ -123,7 +124,7 @@ export function CardHand({ cards, isMyTurn, mapInnerRef, onPlay, onDiscard }: Ca
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [drag, isMyTurn, cards, mapInnerRef, onPlay]);
+  }, [drag, isMyTurn, hasAP, cards, mapInnerRef, onPlay]);
 
   const handleMouseDown = (e: React.MouseEvent, cardId: string) => {
     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
@@ -190,7 +191,7 @@ export function CardHand({ cards, isMyTurn, mapInnerRef, onPlay, onDiscard }: Ca
         if (!card) return null;
         return (
           <div
-            className={`card card-type-${card.type} card-ghost${isOverMap ? ' card-ghost--over-map' : ''}`}
+            className={`card card-type-${card.type} card-ghost${isOverMap ? (hasAP ? ' card-ghost--over-map' : ' card-ghost--over-map-blocked') : ''}`}
             style={{
               position: 'fixed',
               left: drag.x - drag.offsetX,

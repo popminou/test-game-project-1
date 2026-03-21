@@ -743,6 +743,12 @@ body {
   box-shadow: 0 0 0 2px rgba(201, 162, 39, 0.4), 0 12px 32px rgba(0, 0, 0, 0.7);
 }
 
+.card.card-ghost--over-map-blocked {
+  border-color: #e74c3c;
+  border-width: 3px;
+  box-shadow: 0 0 0 2px rgba(231, 76, 60, 0.4), 0 12px 32px rgba(0, 0, 0, 0.7);
+}
+
 .card-type-band {
   height: 6px;
   flex-shrink: 0;
