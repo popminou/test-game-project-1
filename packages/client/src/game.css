@@ -678,8 +678,11 @@ body {
   display: flex;
   flex-direction: row;
   justify-content: center;
+  align-items: center;
   gap: 12px;
   padding: 12px 16px;
+  height: 174px;
+  flex-shrink: 0;
   background: rgba(13, 17, 23, 0.85);
   border-top: 1px solid #1e2f42;
   overflow-x: auto;

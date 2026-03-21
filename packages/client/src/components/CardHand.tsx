@@ -149,8 +149,6 @@ export function CardHand({ cards, isMyTurn, mapInnerRef, onPlay, onDiscard }: Ca
     setSelectedCardId(null);
   };
 
-  if (cards.length === 0) return null;
-
   return (
     <>
       <div className="card-hand">
