@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { GameState } from '@test-project/iso';
 import { GameMap } from './GameMap';
 import { PlayerPanel } from './PlayerPanel';
 import { PlayerBar } from './PlayerBar';
 import { CardHand } from './CardHand';
+import { PlayedCards } from './PlayedCards';
 
 interface GameBoardProps {
   gameState: GameState;
@@ -17,6 +18,7 @@ interface GameBoardProps {
 
 export function GameBoard({ gameState, myPlayerId, onEndTurn, onLeave, onArmyMove, onCardPlay, onCardDiscard }: GameBoardProps) {
   const [moveMode, setMoveMode] = useState(false);
+  const mapInnerRef = useRef<HTMLDivElement>(null);
 
   const currentPlayer = gameState.players[gameState.currentPlayerIndex];
   const isMyTurn = currentPlayer?.id === myPlayerId;
@@ -43,18 +45,20 @@ export function GameBoard({ gameState, myPlayerId, onEndTurn, onLeave, onArmyMov
             onToggleMoveMode={toggleMoveMode}
           />
         )}
-        <div className="map-inner">
+        <div className="map-inner" ref={mapInnerRef}>
           <GameMap
             gameState={gameState}
             myPlayerId={myPlayerId}
             moveMode={moveMode}
             onArmyMove={onArmyMove}
           />
+          <PlayedCards cards={gameState.playedCards} />
         </div>
         {myPlayer && (
           <CardHand
             cards={myPlayer.hand}
             isMyTurn={isMyTurn}
+            mapInnerRef={mapInnerRef}
             onPlay={onCardPlay}
             onDiscard={onCardDiscard}
           />

@@ -256,6 +256,7 @@ body {
   padding: 30px 50px 100px 50px;
   overflow: hidden;
   min-height: 0;
+  position: relative;
 }
 
 /* ---- Action Points Bar ---- */
@@ -651,6 +652,26 @@ body {
   background: rgba(201, 162, 39, 0.1);
 }
 
+/* ---- Played Cards ---- */
+
+.played-cards {
+  position: absolute;
+  right: 20px;
+  top: 20px;
+  width: 100px;
+  pointer-events: none;
+}
+
+.played-card {
+  position: absolute;
+  left: 0;
+  cursor: default;
+}
+
+.played-card:hover {
+  transform: none;
+}
+
 /* ---- Card Hand ---- */
 
 .card-hand {
@@ -711,6 +732,12 @@ body {
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.7);
   transform: rotate(3deg);
   cursor: grabbing;
+}
+
+.card.card-ghost--over-map {
+  border-color: #c9a227;
+  border-width: 3px;
+  box-shadow: 0 0 0 2px rgba(201, 162, 39, 0.4), 0 12px 32px rgba(0, 0, 0, 0.7);
 }
 
 .card-type-band {

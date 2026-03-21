@@ -4,6 +4,7 @@ import type { Card } from '@test-project/iso';
 interface CardHandProps {
   cards: Card[];
   isMyTurn: boolean;
+  mapInnerRef: React.RefObject<HTMLDivElement | null>;
   onPlay: (cardId: string) => void;
   onDiscard: (cardId: string) => void;
 }
@@ -31,7 +32,7 @@ interface ReturnState {
 
 const DRAG_THRESHOLD = 5;
 
-export function CardHand({ cards, isMyTurn, onPlay, onDiscard }: CardHandProps) {
+export function CardHand({ cards, isMyTurn, mapInnerRef, onPlay, onDiscard }: CardHandProps) {
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
   const [drag, setDrag] = useState<DragState | null>(null);
   const [returning, setReturning] = useState<ReturnState | null>(null);
@@ -39,6 +40,13 @@ export function CardHand({ cards, isMyTurn, onPlay, onDiscard }: CardHandProps) 
 
   const isDragging = drag !== null &&
     (Math.abs(drag.x - drag.startX) > DRAG_THRESHOLD || Math.abs(drag.y - drag.startY) > DRAG_THRESHOLD);
+
+  const isOverMap = isDragging && drag && (() => {
+    const rect = mapInnerRef.current?.getBoundingClientRect();
+    return rect &&
+      drag.x >= rect.left && drag.x <= rect.right &&
+      drag.y >= rect.top && drag.y <= rect.bottom;
+  })();
 
   // Kick off the CSS transition on the next frame after the ghost is rendered at drop position
   useEffect(() => {
@@ -77,7 +85,18 @@ export function CardHand({ cards, isMyTurn, onPlay, onDiscard }: CardHandProps) 
         }
 
         if (moved) {
-          // Find the original card element to get return target position
+          // Check if dropped on the map
+          const mapRect = mapInnerRef.current?.getBoundingClientRect();
+          const droppedOnMap = mapRect &&
+            e.clientX >= mapRect.left && e.clientX <= mapRect.right &&
+            e.clientY >= mapRect.top && e.clientY <= mapRect.bottom;
+
+          if (droppedOnMap && isMyTurn) {
+            onPlay(prev.cardId);
+            return null;
+          }
+
+          // Not on map — animate card back to hand
           const cardEl = cardRefs.current.get(prev.cardId);
           const card = cards.find((c) => c.id === prev.cardId);
           if (cardEl && card) {
@@ -104,7 +123,7 @@ export function CardHand({ cards, isMyTurn, onPlay, onDiscard }: CardHandProps) 
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [drag, isMyTurn, cards]);
+  }, [drag, isMyTurn, cards, mapInnerRef, onPlay]);
 
   const handleMouseDown = (e: React.MouseEvent, cardId: string) => {
     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
@@ -173,7 +192,7 @@ export function CardHand({ cards, isMyTurn, onPlay, onDiscard }: CardHandProps) 
         if (!card) return null;
         return (
           <div
-            className={`card card-type-${card.type} card-ghost`}
+            className={`card card-type-${card.type} card-ghost${isOverMap ? ' card-ghost--over-map' : ''}`}
             style={{
               position: 'fixed',
               left: drag.x - drag.offsetX,

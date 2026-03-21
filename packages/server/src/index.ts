@@ -75,6 +75,7 @@ function createInitialState(): GameState {
     currentPlayerIndex: 0,
     turnNumber: 0,
     deck: [],
+    playedCards: [],
   };
 }
 
@@ -232,6 +233,7 @@ io.on('connection', (socket) => {
       return;
     }
     const [card] = player.hand.splice(cardIndex, 1);
+    gameState.playedCards.push(card);
     io.emit('game:state', gameState);
     callback({ success: true });
     console.log(`[card:play] ${player.name} played ${card.name}`);

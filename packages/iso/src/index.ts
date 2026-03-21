@@ -67,6 +67,7 @@ export interface GameState {
   currentPlayerIndex: number;
   turnNumber: number;
   deck: Card[];
+  playedCards: Card[];
 }
 
 export interface ArmyMovePayload {
