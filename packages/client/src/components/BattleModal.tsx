@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import type { GameState } from '@test-project/iso';
+import { useEffect, useRef, useState } from 'react';
+import type { Army, GameState } from '@test-project/iso';
 import { PLAYER_COLOR_VALUES, TERRITORY_DEFS } from '@test-project/iso';
 
 interface BattleModalProps {
@@ -11,19 +11,22 @@ interface BattleModalProps {
   onRetreat: () => void;
   onEndBattle: () => void;
   onArmiesLost: (armyIds: string[]) => void;
+  onRoll: (attackerDice: number[], defenderDice: number[]) => void;
 }
 
 function rollDice(count: number): number[] {
   return Array.from({ length: count }, () => Math.floor(Math.random() * 6) + 1);
 }
 
-export function BattleModal({ gameState, myPlayerId, attackerPlayerId, defenderPlayerId, territoryId, onRetreat, onEndBattle, onArmiesLost }: BattleModalProps) {
+export function BattleModal({ gameState, myPlayerId, attackerPlayerId, defenderPlayerId, territoryId, onRetreat, onEndBattle, onArmiesLost, onRoll }: BattleModalProps) {
   const [attackerDice, setAttackerDice] = useState<number[] | null>(null);
   const [defenderDice, setDefenderDice] = useState<number[] | null>(null);
   const [animPhase, setAnimPhase] = useState<'idle' | 'rolling' | 'colliding' | 'resolved'>('idle');
   const [dyingArmyIds, setDyingArmyIds] = useState<Set<string>>(new Set());
   const [deadArmyIds, setDeadArmyIds] = useState<Set<string>>(new Set());
   const [rollCount, setRollCount] = useState(0);
+  const [hasEverRolled, setHasEverRolled] = useState(false);
+  const prevDiceKeyRef = useRef('');
 
   const attacker = gameState.players.find((p) => p.id === attackerPlayerId);
   const defender = gameState.players.find((p) => p.id === defenderPlayerId);
@@ -48,13 +51,13 @@ export function BattleModal({ gameState, myPlayerId, attackerPlayerId, defenderP
   const isAnimating = animPhase === 'rolling' || animPhase === 'colliding' || dyingArmyIds.size > 0;
   const battleOver = visibleAttackerArmies.length === 0 || visibleDefenderArmies.length === 0;
 
-  const handleRoll = () => {
-    const currentAttackerArmies = attackerArmies.filter((a) => !deadArmyIds.has(a.id));
-    const currentDefenderArmies = defenderArmies.filter((a) => !deadArmyIds.has(a.id));
-
-    const aDice = rollDice(Math.min(currentAttackerArmies.length, 3)).sort((a, b) => b - a);
-    const dDice = rollDice(Math.min(currentDefenderArmies.length, 2)).sort((a, b) => b - a);
-
+  const runDiceAnimation = (
+    aDice: number[],
+    dDice: number[],
+    currentAttackerArmies: Army[],
+    currentDefenderArmies: Army[],
+    reportLosses: boolean,
+  ) => {
     setAttackerDice(aDice);
     setDefenderDice(dDice);
     setRollCount((c) => c + 1);
@@ -88,11 +91,38 @@ export function BattleModal({ gameState, myPlayerId, attackerPlayerId, defenderP
           setDyingArmyIds(new Set());
           setAttackerDice(null);
           setDefenderDice(null);
-          if (dying.size > 0) onArmiesLost([...dying]);
+          setHasEverRolled(true);
+          if (reportLosses && dying.size > 0) onArmiesLost([...dying]);
         }, 1000);
       }, 600);
     }, 2000);
   };
+
+  const handleRoll = () => {
+    const currentAttackerArmies = attackerArmies.filter((a) => !deadArmyIds.has(a.id));
+    const currentDefenderArmies = defenderArmies.filter((a) => !deadArmyIds.has(a.id));
+
+    const aDice = rollDice(Math.min(currentAttackerArmies.length, 3)).sort((a, b) => b - a);
+    const dDice = rollDice(Math.min(currentDefenderArmies.length, 2)).sort((a, b) => b - a);
+
+    runDiceAnimation(aDice, dDice, currentAttackerArmies, currentDefenderArmies, true);
+    onRoll(aDice, dDice);
+  };
+
+  // Defender: watch for new dice broadcast via gameState and trigger the same animation
+  useEffect(() => {
+    if (isAttacker) return;
+    const ab = gameState.activeBattle;
+    if (!ab?.attackerDice || !ab?.defenderDice) return;
+
+    const key = JSON.stringify([ab.attackerDice, ab.defenderDice]);
+    if (key === prevDiceKeyRef.current) return;
+    prevDiceKeyRef.current = key;
+
+    const snapA = attackerArmies.filter((a) => !deadArmyIds.has(a.id));
+    const snapD = defenderArmies.filter((a) => !deadArmyIds.has(a.id));
+    runDiceAnimation(ab.attackerDice, ab.defenderDice, snapA, snapD, false);
+  }, [gameState.activeBattle?.attackerDice, gameState.activeBattle?.defenderDice]);
 
   return (
     <div className="map-modal-overlay">
@@ -177,9 +207,9 @@ export function BattleModal({ gameState, myPlayerId, attackerPlayerId, defenderP
             ) : (
               <>
                 <button className="btn-confirm" onClick={handleRoll} disabled={isAnimating}>
-                  {hasRolled ? 'Roll Again' : 'Roll Dice'}
+                  {hasEverRolled ? 'Roll Again' : 'Roll Dice'}
                 </button>
-                {hasRolled && !isAnimating && (
+                {hasEverRolled && !isAnimating && (
                   <button className="btn-cancel" onClick={onRetreat}>
                     Retreat (lose 1 army)
                   </button>

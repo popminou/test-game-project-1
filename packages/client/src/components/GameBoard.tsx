@@ -9,12 +9,6 @@ import { BattleModal } from './BattleModal';
 
 export type ActionMode = 'move' | 'battle' | null;
 
-interface ActiveBattle {
-  attackerPlayerId: string;
-  defenderPlayerId: string;
-  territoryId: string;
-}
-
 interface GameBoardProps {
   gameState: GameState;
   myPlayerId: string;
@@ -26,16 +20,24 @@ interface GameBoardProps {
   onBattleStart: (territoryId: string, defenderPlayerId: string) => void;
   onBattleRetreat: (territoryId: string) => void;
   onBattleResolve: (armyIds: string[]) => void;
+  onBattleRoll: (attackerDice: number[], defenderDice: number[]) => void;
+  onBattleEnd: () => void;
 }
 
-export function GameBoard({ gameState, myPlayerId, onEndTurn, onLeave, onArmyMove, onCardPlay, onCardDiscard, onBattleStart, onBattleRetreat, onBattleResolve }: GameBoardProps) {
+export function GameBoard({ gameState, myPlayerId, onEndTurn, onLeave, onArmyMove, onCardPlay, onCardDiscard, onBattleStart, onBattleRetreat, onBattleResolve, onBattleRoll, onBattleEnd }: GameBoardProps) {
   const [actionMode, setActionMode] = useState<ActionMode>(null);
-  const [activeBattle, setActiveBattle] = useState<ActiveBattle | null>(null);
   const mapInnerRef = useRef<HTMLDivElement>(null);
 
   const currentPlayer = gameState.players[gameState.currentPlayerIndex];
   const isMyTurn = currentPlayer?.id === myPlayerId;
   const myPlayer = gameState.players.find((p) => p.id === myPlayerId);
+
+  // Derive activeBattle from server state — only show to involved players
+  const activeBattle = gameState.activeBattle &&
+    (gameState.activeBattle.attackerPlayerId === myPlayerId ||
+      gameState.activeBattle.defenderPlayerId === myPlayerId)
+    ? gameState.activeBattle
+    : null;
 
   // Exit action mode automatically when action points run out
   useEffect(() => {
@@ -49,7 +51,6 @@ export function GameBoard({ gameState, myPlayerId, onEndTurn, onLeave, onArmyMov
   };
 
   const handleBattleStart = (territoryId: string, defenderPlayerId: string) => {
-    setActiveBattle({ attackerPlayerId: myPlayerId, defenderPlayerId, territoryId });
     setActionMode(null);
     onBattleStart(territoryId, defenderPlayerId);
   };
@@ -82,12 +83,10 @@ export function GameBoard({ gameState, myPlayerId, onEndTurn, onLeave, onArmyMov
               attackerPlayerId={activeBattle.attackerPlayerId}
               defenderPlayerId={activeBattle.defenderPlayerId}
               territoryId={activeBattle.territoryId}
-              onRetreat={() => {
-                onBattleRetreat(activeBattle.territoryId);
-                setActiveBattle(null);
-              }}
-              onEndBattle={() => setActiveBattle(null)}
+              onRetreat={() => onBattleRetreat(activeBattle.territoryId)}
+              onEndBattle={onBattleEnd}
               onArmiesLost={onBattleResolve}
+              onRoll={onBattleRoll}
             />
           )}
         </div>

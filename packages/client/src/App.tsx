@@ -94,6 +94,22 @@ export function App() {
       }
     });
   };
+  const handleBattleRoll = (attackerDice: number[], defenderDice: number[]) => {
+    socket?.emit('battle:roll', { attackerDice, defenderDice }, (res) => {
+      if (!res.success) {
+        setError(res.error ?? 'Failed to sync dice roll');
+        setTimeout(() => setError(null), 4000);
+      }
+    });
+  };
+  const handleBattleEnd = () => {
+    socket?.emit('battle:end', (res) => {
+      if (!res.success) {
+        setError(res.error ?? 'Failed to end battle');
+        setTimeout(() => setError(null), 4000);
+      }
+    });
+  };
 
   if (!gameState) {
     return <div className="loading">Connecting to server…</div>;
@@ -115,6 +131,6 @@ export function App() {
 
   // myPlayerId is non-null here because hasJoined requires it
   return (
-    <GameBoard gameState={gameState} myPlayerId={myPlayerId!} onEndTurn={handleEndTurn} onLeave={handleLeave} onArmyMove={handleArmyMove} onCardPlay={handleCardPlay} onCardDiscard={handleCardDiscard} onBattleStart={handleBattleStart} onBattleRetreat={handleBattleRetreat} onBattleResolve={handleBattleResolve} />
+    <GameBoard gameState={gameState} myPlayerId={myPlayerId!} onEndTurn={handleEndTurn} onLeave={handleLeave} onArmyMove={handleArmyMove} onCardPlay={handleCardPlay} onCardDiscard={handleCardDiscard} onBattleStart={handleBattleStart} onBattleRetreat={handleBattleRetreat} onBattleResolve={handleBattleResolve} onBattleRoll={handleBattleRoll} onBattleEnd={handleBattleEnd} />
   );
 }

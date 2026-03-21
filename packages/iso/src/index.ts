@@ -58,6 +58,14 @@ export interface Army {
   territoryId: string;
 }
 
+export interface ActiveBattle {
+  attackerPlayerId: string;
+  defenderPlayerId: string;
+  territoryId: string;
+  attackerDice: number[] | null;
+  defenderDice: number[] | null;
+}
+
 export interface GameState {
   phase: GamePhase;
   players: Player[];
@@ -68,6 +76,7 @@ export interface GameState {
   turnNumber: number;
   deck: Card[];
   playedCards: Card[];
+  activeBattle: ActiveBattle | null;
 }
 
 export interface ArmyMovePayload {
@@ -86,6 +95,11 @@ export interface BattleRetreatPayload {
 
 export interface BattleResolvePayload {
   armyIds: string[];
+}
+
+export interface BattleRollPayload {
+  attackerDice: number[];
+  defenderDice: number[];
 }
 
 export interface CardPlayPayload {
@@ -135,6 +149,13 @@ export interface ClientToServerEvents {
   ) => void;
   'battle:resolve': (
     payload: BattleResolvePayload,
+    callback: (response: { success: boolean; error?: string }) => void,
+  ) => void;
+  'battle:roll': (
+    payload: BattleRollPayload,
+    callback: (response: { success: boolean; error?: string }) => void,
+  ) => void;
+  'battle:end': (
     callback: (response: { success: boolean; error?: string }) => void,
   ) => void;
 }

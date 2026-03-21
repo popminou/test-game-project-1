@@ -20,6 +20,7 @@ import {
   type BattleStartPayload,
   type BattleRetreatPayload,
   type BattleResolvePayload,
+  type BattleRollPayload,
 } from '@test-project/iso';
 
 const app = express();
@@ -79,6 +80,7 @@ function createInitialState(): GameState {
     turnNumber: 0,
     deck: [],
     playedCards: [],
+    activeBattle: null,
   };
 }
 
@@ -307,6 +309,7 @@ io.on('connection', (socket) => {
       (a) => a.playerId === socket.id && a.territoryId === territoryId,
     );
     gameState.armies.splice(idx, 1);
+    gameState.activeBattle = null;
     io.emit('game:state', gameState);
     callback({ success: true });
     const player = gameState.players.find((p) => p.id === socket.id);
@@ -320,9 +323,44 @@ io.on('connection', (socket) => {
     }
     const idSet = new Set(armyIds);
     gameState.armies = gameState.armies.filter((a) => !idSet.has(a.id));
+    if (gameState.activeBattle) {
+      gameState.activeBattle.attackerDice = null;
+      gameState.activeBattle.defenderDice = null;
+    }
     io.emit('game:state', gameState);
     callback({ success: true });
     console.log(`[battle:resolve] removed armies: ${armyIds.join(', ')}`);
+  });
+
+  socket.on('battle:roll', ({ attackerDice, defenderDice }: BattleRollPayload, callback) => {
+    if (gameState.phase !== 'playing') {
+      callback({ success: false, error: 'Game is not in progress' });
+      return;
+    }
+    if (!gameState.activeBattle || gameState.activeBattle.attackerPlayerId !== socket.id) {
+      callback({ success: false, error: 'No active battle for this player' });
+      return;
+    }
+    gameState.activeBattle.attackerDice = attackerDice;
+    gameState.activeBattle.defenderDice = defenderDice;
+    io.emit('game:state', gameState);
+    callback({ success: true });
+  });
+
+  socket.on('battle:end', (callback) => {
+    if (gameState.phase !== 'playing') {
+      callback({ success: false, error: 'Game is not in progress' });
+      return;
+    }
+    if (!gameState.activeBattle || gameState.activeBattle.attackerPlayerId !== socket.id) {
+      callback({ success: false, error: 'No active battle for this player' });
+      return;
+    }
+    const player = gameState.players.find((p) => p.id === socket.id);
+    console.log(`[battle:end] ${player?.name ?? socket.id} ended the battle`);
+    gameState.activeBattle = null;
+    io.emit('game:state', gameState);
+    callback({ success: true });
   });
 
   socket.on('battle:start', ({ territoryId, defenderPlayerId }: BattleStartPayload, callback) => {
@@ -354,6 +392,7 @@ io.on('connection', (socket) => {
       return;
     }
     current.currentActionPoints--;
+    gameState.activeBattle = { attackerPlayerId: socket.id, defenderPlayerId, territoryId, attackerDice: null, defenderDice: null };
     io.emit('game:state', gameState);
     callback({ success: true });
     console.log(`[battle:start] ${current.name} attacks ${defenderPlayerId} in ${territoryId}`);
