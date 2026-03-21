@@ -80,6 +80,10 @@ export interface BattleStartPayload {
   defenderPlayerId: string;
 }
 
+export interface BattleRetreatPayload {
+  territoryId: string;
+}
+
 export interface CardPlayPayload {
   cardId: string;
 }
@@ -119,6 +123,10 @@ export interface ClientToServerEvents {
   ) => void;
   'battle:start': (
     payload: BattleStartPayload,
+    callback: (response: { success: boolean; error?: string }) => void,
+  ) => void;
+  'battle:retreat': (
+    payload: BattleRetreatPayload,
     callback: (response: { success: boolean; error?: string }) => void,
   ) => void;
 }

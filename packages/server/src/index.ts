@@ -18,6 +18,7 @@ import {
   generateTerritoryConnections,
   areTerritoriesConnected,
   type BattleStartPayload,
+  type BattleRetreatPayload,
 } from '@test-project/iso';
 
 const app = express();
@@ -286,6 +287,29 @@ io.on('connection', (socket) => {
     io.emit('game:state', gameState);
     callback({ success: true });
     console.log(`[card:draw] ${player.name} drew ${card.name}`);
+  });
+
+  socket.on('battle:retreat', ({ territoryId }: BattleRetreatPayload, callback) => {
+    if (gameState.phase !== 'playing') {
+      callback({ success: false, error: 'Game is not in progress' });
+      return;
+    }
+    const attackerArmies = gameState.armies.filter(
+      (a) => a.playerId === socket.id && a.territoryId === territoryId,
+    );
+    if (attackerArmies.length === 0) {
+      callback({ success: false, error: 'You have no armies in that territory' });
+      return;
+    }
+    // Remove one attacker army from the territory
+    const idx = gameState.armies.findIndex(
+      (a) => a.playerId === socket.id && a.territoryId === territoryId,
+    );
+    gameState.armies.splice(idx, 1);
+    io.emit('game:state', gameState);
+    callback({ success: true });
+    const player = gameState.players.find((p) => p.id === socket.id);
+    console.log(`[battle:retreat] ${player?.name ?? socket.id} retreated from ${territoryId}, losing 1 army`);
   });
 
   socket.on('battle:start', ({ territoryId, defenderPlayerId }: BattleStartPayload, callback) => {
