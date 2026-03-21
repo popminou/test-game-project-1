@@ -62,6 +62,12 @@ export interface ActiveBattle {
   attackerPlayerId: string;
   defenderPlayerId: string;
   territoryId: string;
+  phase: 'card' | 'battle';
+  maxBattleCards: number;
+  attackerBattleCards: Card[];
+  defenderBattleCards: Card[];
+  attackerCardsDone: boolean;
+  defenderCardsDone: boolean;
   attackerDice: number[] | null;
   defenderDice: number[] | null;
 }
@@ -107,6 +113,10 @@ export interface CardPlayPayload {
 }
 
 export interface CardDiscardPayload {
+  cardId: string;
+}
+
+export interface BattleCardPlayPayload {
   cardId: string;
 }
 
@@ -156,6 +166,13 @@ export interface ClientToServerEvents {
     callback: (response: { success: boolean; error?: string }) => void,
   ) => void;
   'battle:end': (
+    callback: (response: { success: boolean; error?: string }) => void,
+  ) => void;
+  'battle:card:play': (
+    payload: BattleCardPlayPayload,
+    callback: (response: { success: boolean; error?: string }) => void,
+  ) => void;
+  'battle:card:done': (
     callback: (response: { success: boolean; error?: string }) => void,
   ) => void;
 }

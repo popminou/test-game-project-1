@@ -8,6 +8,9 @@ interface CardHandProps {
   mapInnerRef: React.RefObject<HTMLDivElement | null>;
   onPlay: (cardId: string) => void;
   onDiscard: (cardId: string) => void;
+  battleDropRef?: React.RefObject<HTMLDivElement | null>;
+  onBattleCardPlay?: (cardId: string) => void;
+  battleCardZoneRef?: React.RefObject<HTMLDivElement | null>;
 }
 
 interface DragState {
@@ -31,12 +34,24 @@ interface ReturnState {
   active: boolean;
 }
 
+interface FlyingState {
+  cardId: string;
+  card: Card;
+  x: number;
+  y: number;
+  targetX: number;
+  targetY: number;
+  // false = at drop position (pre-transition), true = animating to zone
+  active: boolean;
+}
+
 const DRAG_THRESHOLD = 5;
 
-export function CardHand({ cards, isMyTurn, hasAP, mapInnerRef, onPlay, onDiscard }: CardHandProps) {
+export function CardHand({ cards, isMyTurn, hasAP, mapInnerRef, onPlay, onDiscard, battleDropRef, onBattleCardPlay, battleCardZoneRef }: CardHandProps) {
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
   const [drag, setDrag] = useState<DragState | null>(null);
   const [returning, setReturning] = useState<ReturnState | null>(null);
+  const [flying, setFlying] = useState<FlyingState | null>(null);
   const cardRefs = useRef<Map<string, HTMLDivElement>>(new Map());
 
   const isDragging = drag !== null &&
@@ -44,6 +59,13 @@ export function CardHand({ cards, isMyTurn, hasAP, mapInnerRef, onPlay, onDiscar
 
   const isOverMap = isDragging && drag && (() => {
     const rect = mapInnerRef.current?.getBoundingClientRect();
+    return rect &&
+      drag.x >= rect.left && drag.x <= rect.right &&
+      drag.y >= rect.top && drag.y <= rect.bottom;
+  })();
+
+  const isOverBattle = isDragging && drag && battleDropRef && (() => {
+    const rect = battleDropRef.current?.getBoundingClientRect();
     return rect &&
       drag.x >= rect.left && drag.x <= rect.right &&
       drag.y >= rect.top && drag.y <= rect.bottom;
@@ -66,6 +88,27 @@ export function CardHand({ cards, isMyTurn, hasAP, mapInnerRef, onPlay, onDiscar
     return () => clearTimeout(timer);
   }, [returning?.active]);
 
+  // Kick off flying transition on next frame
+  useEffect(() => {
+    if (flying && !flying.active) {
+      const raf = requestAnimationFrame(() => {
+        setFlying((prev) => prev ? { ...prev, active: true } : null);
+      });
+      return () => cancelAnimationFrame(raf);
+    }
+  }, [flying?.cardId, flying?.active]);
+
+  // After flying completes, emit the card play and clear state
+  useEffect(() => {
+    if (!flying?.active) return;
+    const cardId = flying.cardId;
+    const timer = setTimeout(() => {
+      onBattleCardPlay?.(cardId);
+      setFlying(null);
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [flying?.active]);
+
   useEffect(() => {
     if (!drag) return;
 
@@ -86,6 +129,34 @@ export function CardHand({ cards, isMyTurn, hasAP, mapInnerRef, onPlay, onDiscar
         }
 
         if (moved) {
+          // Check if dropped on the battle overlay (card phase)
+          const battleRect = battleDropRef?.current?.getBoundingClientRect();
+          const droppedOnBattle = battleRect &&
+            e.clientX >= battleRect.left && e.clientX <= battleRect.right &&
+            e.clientY >= battleRect.top && e.clientY <= battleRect.bottom;
+
+          if (droppedOnBattle && onBattleCardPlay) {
+            const cardEl = cardRefs.current.get(prev.cardId);
+            const card = cards.find((c) => c.id === prev.cardId);
+            const zoneEl = battleCardZoneRef?.current;
+            if (cardEl && card && zoneEl) {
+              const cardRect = cardEl.getBoundingClientRect();
+              const zoneRect = zoneEl.getBoundingClientRect();
+              setFlying({
+                cardId: prev.cardId,
+                card,
+                x: e.clientX - prev.offsetX,
+                y: e.clientY - prev.offsetY,
+                targetX: zoneRect.left + zoneRect.width / 2 - cardRect.width / 2,
+                targetY: zoneRect.top + 36,
+                active: false,
+              });
+            } else {
+              onBattleCardPlay(prev.cardId);
+            }
+            return null;
+          }
+
           // Check if dropped on the map
           const mapRect = mapInnerRef.current?.getBoundingClientRect();
           const droppedOnMap = mapRect &&
@@ -124,7 +195,7 @@ export function CardHand({ cards, isMyTurn, hasAP, mapInnerRef, onPlay, onDiscar
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [drag, isMyTurn, hasAP, cards, mapInnerRef, onPlay]);
+  }, [drag, isMyTurn, hasAP, cards, mapInnerRef, onPlay, battleDropRef, onBattleCardPlay, battleCardZoneRef]);
 
   const handleMouseDown = (e: React.MouseEvent, cardId: string) => {
     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
@@ -156,6 +227,7 @@ export function CardHand({ cards, isMyTurn, hasAP, mapInnerRef, onPlay, onDiscar
         {cards.map((card) => {
           const isBeingDragged = drag?.cardId === card.id && isDragging;
           const isReturning = returning?.cardId === card.id;
+          const isFlying = flying?.cardId === card.id;
           return (
             <div key={card.id} className="card-wrapper">
               <div
@@ -163,7 +235,7 @@ export function CardHand({ cards, isMyTurn, hasAP, mapInnerRef, onPlay, onDiscar
                   if (el) cardRefs.current.set(card.id, el);
                   else cardRefs.current.delete(card.id);
                 }}
-                className={`card card-type-${card.type}${!isMyTurn ? ' card-disabled' : ''}${selectedCardId === card.id ? ' card-selected' : ''}${isBeingDragged || isReturning ? ' card-dragging-source' : ''}`}
+                className={`card card-type-${card.type}${!isMyTurn ? ' card-disabled' : ''}${selectedCardId === card.id ? ' card-selected' : ''}${isBeingDragged || isReturning || isFlying ? ' card-dragging-source' : ''}`}
                 onMouseDown={(e) => handleMouseDown(e, card.id)}
               >
                 <div className="card-type-band" />
@@ -191,7 +263,7 @@ export function CardHand({ cards, isMyTurn, hasAP, mapInnerRef, onPlay, onDiscar
         if (!card) return null;
         return (
           <div
-            className={`card card-type-${card.type} card-ghost${isOverMap ? (hasAP ? ' card-ghost--over-map' : ' card-ghost--over-map-blocked') : ''}`}
+            className={`card card-type-${card.type} card-ghost${battleDropRef ? (isOverBattle ? ' card-ghost--over-battle' : ' card-ghost--battle-invalid') : isOverMap ? (hasAP ? ' card-ghost--over-map' : ' card-ghost--over-map-blocked') : ''}`}
             style={{
               position: 'fixed',
               left: drag.x - drag.offsetX,
@@ -225,6 +297,29 @@ export function CardHand({ cards, isMyTurn, hasAP, mapInnerRef, onPlay, onDiscar
           <div className="card-type-band" />
           <div className="card-name">{returning.card.name}</div>
           <div className="card-description">{returning.card.description}</div>
+        </div>
+      )}
+
+      {/* Flying-to-zone ghost */}
+      {flying && (
+        <div
+          className={`card card-type-${flying.card.type} card-ghost`}
+          style={{
+            position: 'fixed',
+            left: flying.active ? flying.targetX : flying.x,
+            top: flying.active ? flying.targetY : flying.y,
+            pointerEvents: 'none',
+            zIndex: 1100,
+            transformOrigin: 'top center',
+            transition: flying.active
+              ? 'left 0.35s ease, top 0.35s ease, transform 0.35s ease'
+              : 'none',
+            transform: flying.active ? 'scale(0.72) rotate(0deg)' : 'rotate(3deg)',
+          }}
+        >
+          <div className="card-type-band" />
+          <div className="card-name">{flying.card.name}</div>
+          <div className="card-description">{flying.card.description}</div>
         </div>
       )}
     </>

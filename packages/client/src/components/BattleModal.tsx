@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import type { Army, GameState } from '@test-project/iso';
+import type { Army, Card, GameState } from '@test-project/iso';
 import { PLAYER_COLOR_VALUES, TERRITORY_DEFS } from '@test-project/iso';
 
 interface BattleModalProps {
@@ -12,13 +12,27 @@ interface BattleModalProps {
   onEndBattle: () => void;
   onArmiesLost: (armyIds: string[]) => void;
   onRoll: (attackerDice: number[], defenderDice: number[]) => void;
+  overlayRef: React.RefObject<HTMLDivElement | null>;
+  onCardDone: () => void;
+  attackerZoneRef?: React.RefObject<HTMLDivElement | null>;
+  defenderZoneRef?: React.RefObject<HTMLDivElement | null>;
 }
 
 function rollDice(count: number): number[] {
   return Array.from({ length: count }, () => Math.floor(Math.random() * 6) + 1);
 }
 
-export function BattleModal({ gameState, myPlayerId, attackerPlayerId, defenderPlayerId, territoryId, onRetreat, onEndBattle, onArmiesLost, onRoll }: BattleModalProps) {
+function BattleCard({ card }: { card: Card }) {
+  return (
+    <div className={`card card-type-${card.type} battle-zone-card`}>
+      <div className="card-type-band" />
+      <div className="card-name">{card.name}</div>
+      <div className="card-description">{card.description}</div>
+    </div>
+  );
+}
+
+export function BattleModal({ gameState, myPlayerId, attackerPlayerId, defenderPlayerId, territoryId, onRetreat, onEndBattle, onArmiesLost, onRoll, overlayRef, onCardDone, attackerZoneRef, defenderZoneRef }: BattleModalProps) {
   const [attackerDice, setAttackerDice] = useState<number[] | null>(null);
   const [defenderDice, setDefenderDice] = useState<number[] | null>(null);
   const [animPhase, setAnimPhase] = useState<'idle' | 'rolling' | 'colliding' | 'resolved'>('idle');
@@ -46,10 +60,16 @@ export function BattleModal({ gameState, myPlayerId, attackerPlayerId, defenderP
   const defenderColor = defender ? PLAYER_COLOR_VALUES[defender.color] : '#888';
 
   const isAttacker = myPlayerId === attackerPlayerId;
+  const isDefender = myPlayerId === defenderPlayerId;
   const hasRolled = attackerDice !== null;
   const pairCount = attackerDice && defenderDice ? Math.min(attackerDice.length, defenderDice.length) : 0;
   const isAnimating = animPhase === 'rolling' || animPhase === 'colliding' || dyingArmyIds.size > 0;
   const battleOver = visibleAttackerArmies.length === 0 || visibleDefenderArmies.length === 0;
+
+  const activeBattle = gameState.activeBattle;
+  const isCardPhase = activeBattle?.phase === 'card';
+  const myCardsDone = isAttacker ? activeBattle?.attackerCardsDone : activeBattle?.defenderCardsDone;
+  const opponentCardsDone = isAttacker ? activeBattle?.defenderCardsDone : activeBattle?.attackerCardsDone;
 
   const runDiceAnimation = (
     aDice: number[],
@@ -124,100 +144,140 @@ export function BattleModal({ gameState, myPlayerId, attackerPlayerId, defenderP
     runDiceAnimation(ab.attackerDice, ab.defenderDice, snapA, snapD, false);
   }, [gameState.activeBattle?.attackerDice, gameState.activeBattle?.defenderDice]);
 
+  const attackerBattleCards = activeBattle?.attackerBattleCards ?? [];
+  const defenderBattleCards = activeBattle?.defenderBattleCards ?? [];
+
   return (
-    <div className="map-modal-overlay">
-      <div className="battle-modal">
-        <h2 className="battle-title">Battle in {territory?.name ?? territoryId}</h2>
-        <div className="battle-sides">
-          <div className="battle-side">
-            <h3 className="battle-player-name" style={{ color: attackerColor }}>
-              {attacker?.name ?? 'Attacker'}
-            </h3>
-            <p className="battle-role">Attacker</p>
-            <div className="battle-armies">
-              {attackerArmies.filter((a) => !deadArmyIds.has(a.id)).map((army) => (
-                <div
-                  key={army.id}
-                  className={`battle-army-unit${dyingArmyIds.has(army.id) ? ' army-dying' : ''}`}
-                  style={{ background: attackerColor }}
-                />
-              ))}
-            </div>
-            <p className="battle-army-count">
-              {visibleAttackerArmies.length} {visibleAttackerArmies.length === 1 ? 'army' : 'armies'}
-            </p>
-          </div>
-
-          <div className="battle-dice-section">
-            {hasRolled ? (
-              <>
-                <div className="battle-dice-row">
-                  {attackerDice!.map((value, i) => (
-                    <div
-                      key={`${rollCount}-a-${i}`}
-                      className={`battle-die attacker-die${animPhase === 'rolling' ? ' die-rolling' : ''}${animPhase === 'colliding' && i < pairCount ? ' die-colliding-attacker' : ''}`}
-                    >
-                      {value}
-                    </div>
-                  ))}
-                </div>
-                <div className="battle-vs">vs</div>
-                <div className="battle-dice-row">
-                  {defenderDice!.map((value, i) => (
-                    <div
-                      key={`${rollCount}-d-${i}`}
-                      className={`battle-die defender-die${animPhase === 'rolling' ? ' die-rolling' : ''}${animPhase === 'colliding' && i < pairCount ? ' die-colliding-defender' : ''}`}
-                    >
-                      {value}
-                    </div>
-                  ))}
-                </div>
-              </>
-            ) : (
-              <p className="battle-dice-placeholder">Roll to begin</p>
-            )}
-          </div>
-
-          <div className="battle-side">
-            <h3 className="battle-player-name" style={{ color: defenderColor }}>
-              {defender?.name ?? 'Defender'}
-            </h3>
-            <p className="battle-role">Defender</p>
-            <div className="battle-armies">
-              {defenderArmies.filter((a) => !deadArmyIds.has(a.id)).map((army) => (
-                <div
-                  key={army.id}
-                  className={`battle-army-unit${dyingArmyIds.has(army.id) ? ' army-dying' : ''}`}
-                  style={{ background: defenderColor }}
-                />
-              ))}
-            </div>
-            <p className="battle-army-count">
-              {visibleDefenderArmies.length} {visibleDefenderArmies.length === 1 ? 'army' : 'armies'}
-            </p>
-          </div>
+    <div className="map-modal-overlay" ref={overlayRef}>
+      <div className="battle-modal-row">
+        <div className="battle-card-zone battle-card-zone--attacker" ref={attackerZoneRef}>
+          <p className="battle-card-zone-label">Attacker cards</p>
+          {attackerBattleCards.length > 0
+            ? attackerBattleCards.map((c) => <BattleCard key={c.id} card={c} />)
+            : isCardPhase && <p className="battle-card-zone-placeholder">{isAttacker ? 'Drag card here' : 'Waiting…'}</p>
+          }
         </div>
 
-        {isAttacker && (
-          <div className="map-modal-buttons">
-            {battleOver ? (
-              <button className="btn-confirm" onClick={onEndBattle}>
-                End Battle
-              </button>
-            ) : (
-              <>
-                <button className="btn-confirm" onClick={handleRoll} disabled={isAnimating}>
-                  {hasEverRolled ? 'Roll Again' : 'Roll Dice'}
-                </button>
-                {hasEverRolled && !isAnimating && (
-                  <button className="btn-cancel" onClick={onRetreat}>
-                    Retreat (lose 1 army)
-                  </button>
-                )}
-              </>
-            )}
+        <div className="battle-modal">
+          <h2 className="battle-title">Battle in {territory?.name ?? territoryId}</h2>
+          <div className="battle-sides">
+            <div className="battle-side">
+              <h3 className="battle-player-name" style={{ color: attackerColor }}>
+                {attacker?.name ?? 'Attacker'}
+              </h3>
+              <p className="battle-role">Attacker</p>
+              <div className="battle-armies">
+                {attackerArmies.filter((a) => !deadArmyIds.has(a.id)).map((army) => (
+                  <div
+                    key={army.id}
+                    className={`battle-army-unit${dyingArmyIds.has(army.id) ? ' army-dying' : ''}`}
+                    style={{ background: attackerColor }}
+                  />
+                ))}
+              </div>
+              <p className="battle-army-count">
+                {visibleAttackerArmies.length} {visibleAttackerArmies.length === 1 ? 'army' : 'armies'}
+              </p>
+            </div>
+
+            <div className="battle-dice-section">
+              {isCardPhase ? (
+                <div className="battle-phase-status">
+                  <p className="battle-phase-label">Card Phase</p>
+                  {(isAttacker || isDefender) && (
+                    myCardsDone
+                      ? <p className="battle-phase-waiting">Waiting for opponent…</p>
+                      : <p className="battle-phase-hint">Play a card or press Done</p>
+                  )}
+                </div>
+              ) : hasRolled ? (
+                <>
+                  <div className="battle-dice-row">
+                    {attackerDice!.map((value, i) => (
+                      <div
+                        key={`${rollCount}-a-${i}`}
+                        className={`battle-die attacker-die${animPhase === 'rolling' ? ' die-rolling' : ''}${animPhase === 'colliding' && i < pairCount ? ' die-colliding-attacker' : ''}`}
+                      >
+                        {value}
+                      </div>
+                    ))}
+                  </div>
+                  <div className="battle-vs">vs</div>
+                  <div className="battle-dice-row">
+                    {defenderDice!.map((value, i) => (
+                      <div
+                        key={`${rollCount}-d-${i}`}
+                        className={`battle-die defender-die${animPhase === 'rolling' ? ' die-rolling' : ''}${animPhase === 'colliding' && i < pairCount ? ' die-colliding-defender' : ''}`}
+                      >
+                        {value}
+                      </div>
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <p className="battle-dice-placeholder">Roll to begin</p>
+              )}
+            </div>
+
+            <div className="battle-side">
+              <h3 className="battle-player-name" style={{ color: defenderColor }}>
+                {defender?.name ?? 'Defender'}
+              </h3>
+              <p className="battle-role">Defender</p>
+              <div className="battle-armies">
+                {defenderArmies.filter((a) => !deadArmyIds.has(a.id)).map((army) => (
+                  <div
+                    key={army.id}
+                    className={`battle-army-unit${dyingArmyIds.has(army.id) ? ' army-dying' : ''}`}
+                    style={{ background: defenderColor }}
+                  />
+                ))}
+              </div>
+              <p className="battle-army-count">
+                {visibleDefenderArmies.length} {visibleDefenderArmies.length === 1 ? 'army' : 'armies'}
+              </p>
+            </div>
           </div>
-        )}
+
+          {isCardPhase && (isAttacker || isDefender) && (
+            <div className="map-modal-buttons">
+              {myCardsDone ? (
+                <p className="battle-phase-waiting">Waiting for {opponentCardsDone ? '' : 'opponent'}…</p>
+              ) : (
+                <button className="btn-confirm" onClick={onCardDone}>Done</button>
+              )}
+            </div>
+          )}
+
+          {!isCardPhase && isAttacker && (
+            <div className="map-modal-buttons">
+              {battleOver ? (
+                <button className="btn-confirm" onClick={onEndBattle}>
+                  End Battle
+                </button>
+              ) : (
+                <>
+                  <button className="btn-confirm" onClick={handleRoll} disabled={isAnimating}>
+                    {hasEverRolled ? 'Roll Again' : 'Roll Dice'}
+                  </button>
+                  {hasEverRolled && !isAnimating && (
+                    <button className="btn-cancel" onClick={onRetreat}>
+                      Retreat (lose 1 army)
+                    </button>
+                  )}
+                </>
+              )}
+            </div>
+          )}
+        </div>
+
+        <div className="battle-card-zone battle-card-zone--defender" ref={defenderZoneRef}>
+          <p className="battle-card-zone-label">Defender cards</p>
+          {defenderBattleCards.length > 0
+            ? defenderBattleCards.map((c) => <BattleCard key={c.id} card={c} />)
+            : isCardPhase && <p className="battle-card-zone-placeholder">{isDefender ? 'Drag card here' : 'Waiting…'}</p>
+          }
+        </div>
       </div>
     </div>
   );

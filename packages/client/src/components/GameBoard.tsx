@@ -22,11 +22,15 @@ interface GameBoardProps {
   onBattleResolve: (armyIds: string[]) => void;
   onBattleRoll: (attackerDice: number[], defenderDice: number[]) => void;
   onBattleEnd: () => void;
+  onBattleCardPlay: (cardId: string) => void;
+  onBattleCardDone: () => void;
 }
 
-export function GameBoard({ gameState, myPlayerId, onEndTurn, onLeave, onArmyMove, onCardPlay, onCardDiscard, onBattleStart, onBattleRetreat, onBattleResolve, onBattleRoll, onBattleEnd }: GameBoardProps) {
+export function GameBoard({ gameState, myPlayerId, onEndTurn, onLeave, onArmyMove, onCardPlay, onCardDiscard, onBattleStart, onBattleRetreat, onBattleResolve, onBattleRoll, onBattleEnd, onBattleCardPlay, onBattleCardDone }: GameBoardProps) {
   const [actionMode, setActionMode] = useState<ActionMode>(null);
   const mapInnerRef = useRef<HTMLDivElement>(null);
+  const battleOverlayRef = useRef<HTMLDivElement>(null);
+  const myBattleZoneRef = useRef<HTMLDivElement>(null);
 
   const currentPlayer = gameState.players[gameState.currentPlayerIndex];
   const isMyTurn = currentPlayer?.id === myPlayerId;
@@ -87,6 +91,10 @@ export function GameBoard({ gameState, myPlayerId, onEndTurn, onLeave, onArmyMov
               onEndBattle={onBattleEnd}
               onArmiesLost={onBattleResolve}
               onRoll={onBattleRoll}
+              overlayRef={battleOverlayRef}
+              onCardDone={onBattleCardDone}
+              attackerZoneRef={activeBattle.attackerPlayerId === myPlayerId ? myBattleZoneRef : undefined}
+              defenderZoneRef={activeBattle.defenderPlayerId === myPlayerId ? myBattleZoneRef : undefined}
             />
           )}
         </div>
@@ -98,6 +106,9 @@ export function GameBoard({ gameState, myPlayerId, onEndTurn, onLeave, onArmyMov
             mapInnerRef={mapInnerRef}
             onPlay={onCardPlay}
             onDiscard={onCardDiscard}
+            battleDropRef={activeBattle?.phase === 'card' ? battleOverlayRef : undefined}
+            onBattleCardPlay={activeBattle?.phase === 'card' ? onBattleCardPlay : undefined}
+            battleCardZoneRef={activeBattle?.phase === 'card' ? myBattleZoneRef : undefined}
           />
         )}
       </div>

@@ -561,6 +561,97 @@ body {
 
 /* ---- Battle Modal ---- */
 
+.battle-modal-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.battle-card-zone {
+  width: 130px;
+  min-height: 200px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  border: 1px dashed #2a4a6a;
+  border-radius: 6px;
+  background: rgba(19, 28, 39, 0.85);
+}
+
+.battle-card-zone--attacker {
+  border-color: #c0392b66;
+}
+
+.battle-card-zone--defender {
+  border-color: #2980b966;
+}
+
+.battle-card-zone-label {
+  margin: 0 0 0.25rem;
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #6a8fa8;
+}
+
+.battle-card-zone-placeholder {
+  margin: auto 0;
+  font-size: 0.75rem;
+  font-style: italic;
+  color: #3a5a78;
+  text-align: center;
+}
+
+.battle-zone-card {
+  transform: scale(0.72);
+  transform-origin: top center;
+  pointer-events: none;
+  margin-bottom: -38px;
+}
+
+.battle-phase-status {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0;
+}
+
+.battle-phase-label {
+  margin: 0;
+  font-family: Georgia, serif;
+  font-size: 1rem;
+  color: #c9a227;
+}
+
+.battle-phase-hint {
+  margin: 0;
+  font-size: 0.75rem;
+  color: #6a8fa8;
+  font-style: italic;
+}
+
+.battle-phase-waiting {
+  margin: 0;
+  font-size: 0.8rem;
+  color: #6a8fa8;
+  font-style: italic;
+}
+
+.card.card-ghost--over-battle {
+  border-color: #27ae60;
+  border-width: 3px;
+  box-shadow: 0 0 0 2px rgba(39, 174, 96, 0.4), 0 12px 32px rgba(0, 0, 0, 0.7);
+}
+
+.card.card-ghost--battle-invalid {
+  border-color: #c0392b;
+  border-width: 3px;
+  box-shadow: 0 0 0 2px rgba(192, 57, 43, 0.4), 0 12px 32px rgba(0, 0, 0, 0.7);
+}
+
 .battle-modal {
   background: #131c27;
   border: 1px solid #c9a227;

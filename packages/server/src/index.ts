@@ -21,6 +21,7 @@ import {
   type BattleRetreatPayload,
   type BattleResolvePayload,
   type BattleRollPayload,
+  type BattleCardPlayPayload,
 } from '@test-project/iso';
 
 const app = express();
@@ -332,6 +333,78 @@ io.on('connection', (socket) => {
     console.log(`[battle:resolve] removed armies: ${armyIds.join(', ')}`);
   });
 
+  socket.on('battle:card:play', ({ cardId }: BattleCardPlayPayload, callback) => {
+    if (gameState.phase !== 'playing') {
+      callback({ success: false, error: 'Game is not in progress' });
+      return;
+    }
+    const battle = gameState.activeBattle;
+    if (!battle || battle.phase !== 'card') {
+      callback({ success: false, error: 'No active card phase' });
+      return;
+    }
+    const isAttacker = battle.attackerPlayerId === socket.id;
+    const isDefender = battle.defenderPlayerId === socket.id;
+    if (!isAttacker && !isDefender) {
+      callback({ success: false, error: 'You are not in this battle' });
+      return;
+    }
+    const playerCards = isAttacker ? battle.attackerBattleCards : battle.defenderBattleCards;
+    if (playerCards.length >= battle.maxBattleCards) {
+      callback({ success: false, error: 'Already played maximum cards for this battle' });
+      return;
+    }
+    const player = gameState.players.find((p) => p.id === socket.id);
+    if (!player) {
+      callback({ success: false, error: 'Player not found' });
+      return;
+    }
+    const cardIndex = player.hand.findIndex((c) => c.id === cardId);
+    if (cardIndex === -1) {
+      callback({ success: false, error: 'Card not in hand' });
+      return;
+    }
+    const [card] = player.hand.splice(cardIndex, 1);
+    playerCards.push(card);
+    if (playerCards.length >= battle.maxBattleCards) {
+      if (isAttacker) battle.attackerCardsDone = true;
+      else battle.defenderCardsDone = true;
+    }
+    if (battle.attackerCardsDone && battle.defenderCardsDone) {
+      battle.phase = 'battle';
+    }
+    io.emit('game:state', gameState);
+    callback({ success: true });
+    console.log(`[battle:card:play] ${player.name} played ${card.name} in battle`);
+  });
+
+  socket.on('battle:card:done', (callback) => {
+    if (gameState.phase !== 'playing') {
+      callback({ success: false, error: 'Game is not in progress' });
+      return;
+    }
+    const battle = gameState.activeBattle;
+    if (!battle || battle.phase !== 'card') {
+      callback({ success: false, error: 'No active card phase' });
+      return;
+    }
+    const isAttacker = battle.attackerPlayerId === socket.id;
+    const isDefender = battle.defenderPlayerId === socket.id;
+    if (!isAttacker && !isDefender) {
+      callback({ success: false, error: 'You are not in this battle' });
+      return;
+    }
+    if (isAttacker) battle.attackerCardsDone = true;
+    else battle.defenderCardsDone = true;
+    if (battle.attackerCardsDone && battle.defenderCardsDone) {
+      battle.phase = 'battle';
+    }
+    io.emit('game:state', gameState);
+    callback({ success: true });
+    const player = gameState.players.find((p) => p.id === socket.id);
+    console.log(`[battle:card:done] ${player?.name ?? socket.id} done with card phase`);
+  });
+
   socket.on('battle:roll', ({ attackerDice, defenderDice }: BattleRollPayload, callback) => {
     if (gameState.phase !== 'playing') {
       callback({ success: false, error: 'Game is not in progress' });
@@ -339,6 +412,10 @@ io.on('connection', (socket) => {
     }
     if (!gameState.activeBattle || gameState.activeBattle.attackerPlayerId !== socket.id) {
       callback({ success: false, error: 'No active battle for this player' });
+      return;
+    }
+    if (gameState.activeBattle.phase !== 'battle') {
+      callback({ success: false, error: 'Card phase not finished' });
       return;
     }
     gameState.activeBattle.attackerDice = attackerDice;
@@ -392,7 +469,19 @@ io.on('connection', (socket) => {
       return;
     }
     current.currentActionPoints--;
-    gameState.activeBattle = { attackerPlayerId: socket.id, defenderPlayerId, territoryId, attackerDice: null, defenderDice: null };
+    gameState.activeBattle = {
+      attackerPlayerId: socket.id,
+      defenderPlayerId,
+      territoryId,
+      phase: 'card',
+      maxBattleCards: 1,
+      attackerBattleCards: [],
+      defenderBattleCards: [],
+      attackerCardsDone: false,
+      defenderCardsDone: false,
+      attackerDice: null,
+      defenderDice: null,
+    };
     io.emit('game:state', gameState);
     callback({ success: true });
     console.log(`[battle:start] ${current.name} attacks ${defenderPlayerId} in ${territoryId}`);
