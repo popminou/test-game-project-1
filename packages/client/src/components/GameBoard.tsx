@@ -85,6 +85,7 @@ export function GameBoard({ gameState, myPlayerId, onEndTurn, onLeave, onArmyMov
                 onBattleRetreat(activeBattle.territoryId);
                 setActiveBattle(null);
               }}
+              onEndBattle={() => setActiveBattle(null)}
             />
           )}
         </div>
