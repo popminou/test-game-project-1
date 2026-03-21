@@ -37,8 +37,8 @@ export function BattleModal({ gameState, myPlayerId, attackerPlayerId, defenderP
   const hasRolled = attackerDice !== null;
 
   const handleRoll = () => {
-    setAttackerDice(rollDice(Math.min(attackerArmies.length, 3)));
-    setDefenderDice(rollDice(Math.min(defenderArmies.length, 2)));
+    setAttackerDice(rollDice(Math.min(attackerArmies.length, 3)).sort((a, b) => b - a));
+    setDefenderDice(rollDice(Math.min(defenderArmies.length, 2)).sort((a, b) => b - a));
   };
 
   return (
