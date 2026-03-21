@@ -2,25 +2,32 @@ import type { Player } from '@test-project/iso';
 import { ActionPointsDisplay } from './ActionPointsDisplay';
 import { MoveArmiesButton } from './MoveArmiesButton';
 import { StartBattleButton } from './StartBattleButton';
+import type { ActionMode } from './GameBoard';
 
 interface PlayerBarProps {
   player: Player;
   isMyTurn: boolean;
-  moveMode: boolean;
-  battleMode: boolean;
+  actionMode: ActionMode;
   hasAP: boolean;
-  onToggleMoveMode: () => void;
-  onToggleBattleMode: () => void;
+  onToggleActionMode: (mode: NonNullable<ActionMode>) => void;
 }
 
-export function PlayerBar({ player, isMyTurn, moveMode, battleMode, hasAP, onToggleMoveMode, onToggleBattleMode }: PlayerBarProps) {
+export function PlayerBar({ player, isMyTurn, actionMode, hasAP, onToggleActionMode }: PlayerBarProps) {
   return (
     <div className="ap-bar">
       <ActionPointsDisplay player={player} isMyTurn={isMyTurn} />
       {isMyTurn && (
         <>
-          <MoveArmiesButton moveMode={moveMode} hasAP={hasAP} onToggleMoveMode={onToggleMoveMode} />
-          <StartBattleButton battleMode={battleMode} hasAP={hasAP} onToggleBattleMode={onToggleBattleMode} />
+          <MoveArmiesButton
+            moveMode={actionMode === 'move'}
+            hasAP={hasAP}
+            onToggleMoveMode={() => onToggleActionMode('move')}
+          />
+          <StartBattleButton
+            battleMode={actionMode === 'battle'}
+            hasAP={hasAP}
+            onToggleBattleMode={() => onToggleActionMode('battle')}
+          />
         </>
       )}
     </div>

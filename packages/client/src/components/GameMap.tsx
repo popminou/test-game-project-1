@@ -7,12 +7,12 @@ import {
   areTerritoriesConnected,
 } from '@test-project/iso';
 import type { GameState, Army } from '@test-project/iso';
+import type { ActionMode } from './GameBoard';
 
 interface GameMapProps {
   gameState: GameState;
   myPlayerId: string;
-  moveMode: boolean;
-  battleMode: boolean;
+  actionMode: ActionMode;
   onArmyMove: (armyIds: string[], toTerritoryId: string) => void;
   onBattleStart: (territoryId: string, defenderPlayerId: string) => void;
 }
@@ -117,7 +117,9 @@ function getArmyPositions(
   return positions;
 }
 
-export function GameMap({ gameState, myPlayerId, moveMode, battleMode, onArmyMove, onBattleStart }: GameMapProps) {
+export function GameMap({ gameState, myPlayerId, actionMode, onArmyMove, onBattleStart }: GameMapProps) {
+  const moveMode = actionMode === 'move';
+  const battleMode = actionMode === 'battle';
   const [tooltip, setTooltip] = useState<Tooltip | null>(null);
   const [selectedArmyIds, setSelectedArmyIds] = useState<string[]>([]);
   const [selectedTerritoryId, setSelectedTerritoryId] = useState<string | null>(null);

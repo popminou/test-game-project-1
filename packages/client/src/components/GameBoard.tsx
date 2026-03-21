@@ -7,6 +7,8 @@ import { CardHand } from './CardHand';
 import { PlayedCards } from './PlayedCards';
 import { BattleModal } from './BattleModal';
 
+export type ActionMode = 'move' | 'battle' | null;
+
 interface ActiveBattle {
   attackerPlayerId: string;
   defenderPlayerId: string;
@@ -25,8 +27,7 @@ interface GameBoardProps {
 }
 
 export function GameBoard({ gameState, myPlayerId, onEndTurn, onLeave, onArmyMove, onCardPlay, onCardDiscard, onBattleStart }: GameBoardProps) {
-  const [moveMode, setMoveMode] = useState(false);
-  const [battleMode, setBattleMode] = useState(false);
+  const [actionMode, setActionMode] = useState<ActionMode>(null);
   const [activeBattle, setActiveBattle] = useState<ActiveBattle | null>(null);
   const mapInnerRef = useRef<HTMLDivElement>(null);
 
@@ -34,37 +35,20 @@ export function GameBoard({ gameState, myPlayerId, onEndTurn, onLeave, onArmyMov
   const isMyTurn = currentPlayer?.id === myPlayerId;
   const myPlayer = gameState.players.find((p) => p.id === myPlayerId);
 
-  // Exit move mode automatically when action points run out
+  // Exit action mode automatically when action points run out
   useEffect(() => {
-    if (moveMode && myPlayer && myPlayer.currentActionPoints <= 0) {
-      setMoveMode(false);
+    if (actionMode && myPlayer && myPlayer.currentActionPoints <= 0) {
+      setActionMode(null);
     }
   }, [myPlayer?.currentActionPoints]);
 
-  // Exit battle mode automatically when action points run out
-  useEffect(() => {
-    if (battleMode && myPlayer && myPlayer.currentActionPoints <= 0) {
-      setBattleMode(false);
-    }
-  }, [myPlayer?.currentActionPoints]);
-
-  const toggleMoveMode = () => {
-    setMoveMode((prev) => {
-      if (!prev) setBattleMode(false);
-      return !prev;
-    });
-  };
-
-  const toggleBattleMode = () => {
-    setBattleMode((prev) => {
-      if (!prev) setMoveMode(false);
-      return !prev;
-    });
+  const toggleActionMode = (mode: NonNullable<ActionMode>) => {
+    setActionMode((prev) => (prev === mode ? null : mode));
   };
 
   const handleBattleStart = (territoryId: string, defenderPlayerId: string) => {
     setActiveBattle({ attackerPlayerId: myPlayerId, defenderPlayerId, territoryId });
-    setBattleMode(false);
+    setActionMode(null);
     onBattleStart(territoryId, defenderPlayerId);
   };
 
@@ -75,23 +59,29 @@ export function GameBoard({ gameState, myPlayerId, onEndTurn, onLeave, onArmyMov
           <PlayerBar
             player={currentPlayer}
             isMyTurn={isMyTurn}
-            moveMode={moveMode}
-            battleMode={battleMode}
+            actionMode={actionMode}
             hasAP={(myPlayer?.currentActionPoints ?? 0) > 0}
-            onToggleMoveMode={toggleMoveMode}
-            onToggleBattleMode={toggleBattleMode}
+            onToggleActionMode={toggleActionMode}
           />
         )}
         <div className="map-inner" ref={mapInnerRef}>
           <GameMap
             gameState={gameState}
             myPlayerId={myPlayerId}
-            moveMode={moveMode}
-            battleMode={battleMode}
+            actionMode={actionMode}
             onArmyMove={onArmyMove}
             onBattleStart={handleBattleStart}
           />
           <PlayedCards cards={gameState.playedCards} />
+          {activeBattle && (
+            <BattleModal
+              gameState={gameState}
+              attackerPlayerId={activeBattle.attackerPlayerId}
+              defenderPlayerId={activeBattle.defenderPlayerId}
+              territoryId={activeBattle.territoryId}
+              onEndBattle={() => setActiveBattle(null)}
+            />
+          )}
         </div>
         {myPlayer && (
           <CardHand
@@ -110,15 +100,6 @@ export function GameBoard({ gameState, myPlayerId, onEndTurn, onLeave, onArmyMov
         onEndTurn={onEndTurn}
         onLeave={onLeave}
       />
-      {activeBattle && (
-        <BattleModal
-          gameState={gameState}
-          attackerPlayerId={activeBattle.attackerPlayerId}
-          defenderPlayerId={activeBattle.defenderPlayerId}
-          territoryId={activeBattle.territoryId}
-          onEndBattle={() => setActiveBattle(null)}
-        />
-      )}
     </div>
   );
 }
