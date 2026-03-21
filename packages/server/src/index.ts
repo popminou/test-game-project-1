@@ -19,6 +19,7 @@ import {
   areTerritoriesConnected,
   type BattleStartPayload,
   type BattleRetreatPayload,
+  type BattleResolvePayload,
 } from '@test-project/iso';
 
 const app = express();
@@ -310,6 +311,18 @@ io.on('connection', (socket) => {
     callback({ success: true });
     const player = gameState.players.find((p) => p.id === socket.id);
     console.log(`[battle:retreat] ${player?.name ?? socket.id} retreated from ${territoryId}, losing 1 army`);
+  });
+
+  socket.on('battle:resolve', ({ armyIds }: BattleResolvePayload, callback) => {
+    if (gameState.phase !== 'playing') {
+      callback({ success: false, error: 'Game is not in progress' });
+      return;
+    }
+    const idSet = new Set(armyIds);
+    gameState.armies = gameState.armies.filter((a) => !idSet.has(a.id));
+    io.emit('game:state', gameState);
+    callback({ success: true });
+    console.log(`[battle:resolve] removed armies: ${armyIds.join(', ')}`);
   });
 
   socket.on('battle:start', ({ territoryId, defenderPlayerId }: BattleStartPayload, callback) => {

@@ -25,9 +25,10 @@ interface GameBoardProps {
   onCardDiscard: (cardId: string) => void;
   onBattleStart: (territoryId: string, defenderPlayerId: string) => void;
   onBattleRetreat: (territoryId: string) => void;
+  onBattleResolve: (armyIds: string[]) => void;
 }
 
-export function GameBoard({ gameState, myPlayerId, onEndTurn, onLeave, onArmyMove, onCardPlay, onCardDiscard, onBattleStart, onBattleRetreat }: GameBoardProps) {
+export function GameBoard({ gameState, myPlayerId, onEndTurn, onLeave, onArmyMove, onCardPlay, onCardDiscard, onBattleStart, onBattleRetreat, onBattleResolve }: GameBoardProps) {
   const [actionMode, setActionMode] = useState<ActionMode>(null);
   const [activeBattle, setActiveBattle] = useState<ActiveBattle | null>(null);
   const mapInnerRef = useRef<HTMLDivElement>(null);
@@ -86,6 +87,7 @@ export function GameBoard({ gameState, myPlayerId, onEndTurn, onLeave, onArmyMov
                 setActiveBattle(null);
               }}
               onEndBattle={() => setActiveBattle(null)}
+              onArmiesLost={onBattleResolve}
             />
           )}
         </div>

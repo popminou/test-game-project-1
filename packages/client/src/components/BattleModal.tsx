@@ -10,13 +10,14 @@ interface BattleModalProps {
   territoryId: string;
   onRetreat: () => void;
   onEndBattle: () => void;
+  onArmiesLost: (armyIds: string[]) => void;
 }
 
 function rollDice(count: number): number[] {
   return Array.from({ length: count }, () => Math.floor(Math.random() * 6) + 1);
 }
 
-export function BattleModal({ gameState, myPlayerId, attackerPlayerId, defenderPlayerId, territoryId, onRetreat, onEndBattle }: BattleModalProps) {
+export function BattleModal({ gameState, myPlayerId, attackerPlayerId, defenderPlayerId, territoryId, onRetreat, onEndBattle, onArmiesLost }: BattleModalProps) {
   const [attackerDice, setAttackerDice] = useState<number[] | null>(null);
   const [defenderDice, setDefenderDice] = useState<number[] | null>(null);
   const [animPhase, setAnimPhase] = useState<'idle' | 'rolling' | 'colliding' | 'resolved'>('idle');
@@ -87,6 +88,7 @@ export function BattleModal({ gameState, myPlayerId, attackerPlayerId, defenderP
           setDyingArmyIds(new Set());
           setAttackerDice(null);
           setDefenderDice(null);
+          if (dying.size > 0) onArmiesLost([...dying]);
         }, 1000);
       }, 600);
     }, 2000);

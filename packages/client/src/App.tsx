@@ -86,6 +86,14 @@ export function App() {
       }
     });
   };
+  const handleBattleResolve = (armyIds: string[]) => {
+    socket?.emit('battle:resolve', { armyIds }, (res) => {
+      if (!res.success) {
+        setError(res.error ?? 'Failed to resolve battle');
+        setTimeout(() => setError(null), 4000);
+      }
+    });
+  };
 
   if (!gameState) {
     return <div className="loading">Connecting to server…</div>;
@@ -107,6 +115,6 @@ export function App() {
 
   // myPlayerId is non-null here because hasJoined requires it
   return (
-    <GameBoard gameState={gameState} myPlayerId={myPlayerId!} onEndTurn={handleEndTurn} onLeave={handleLeave} onArmyMove={handleArmyMove} onCardPlay={handleCardPlay} onCardDiscard={handleCardDiscard} onBattleStart={handleBattleStart} onBattleRetreat={handleBattleRetreat} />
+    <GameBoard gameState={gameState} myPlayerId={myPlayerId!} onEndTurn={handleEndTurn} onLeave={handleLeave} onArmyMove={handleArmyMove} onCardPlay={handleCardPlay} onCardDiscard={handleCardDiscard} onBattleStart={handleBattleStart} onBattleRetreat={handleBattleRetreat} onBattleResolve={handleBattleResolve} />
   );
 }

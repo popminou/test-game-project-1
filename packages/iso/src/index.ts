@@ -84,6 +84,10 @@ export interface BattleRetreatPayload {
   territoryId: string;
 }
 
+export interface BattleResolvePayload {
+  armyIds: string[];
+}
+
 export interface CardPlayPayload {
   cardId: string;
 }
@@ -127,6 +131,10 @@ export interface ClientToServerEvents {
   ) => void;
   'battle:retreat': (
     payload: BattleRetreatPayload,
+    callback: (response: { success: boolean; error?: string }) => void,
+  ) => void;
+  'battle:resolve': (
+    payload: BattleResolvePayload,
     callback: (response: { success: boolean; error?: string }) => void,
   ) => void;
 }
