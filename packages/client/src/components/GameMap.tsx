@@ -12,7 +12,9 @@ interface GameMapProps {
   gameState: GameState;
   myPlayerId: string;
   moveMode: boolean;
+  battleMode: boolean;
   onArmyMove: (armyIds: string[], toTerritoryId: string) => void;
+  onBattleStart: (territoryId: string, defenderPlayerId: string) => void;
 }
 
 interface Tooltip {
@@ -115,7 +117,7 @@ function getArmyPositions(
   return positions;
 }
 
-export function GameMap({ gameState, myPlayerId, moveMode, onArmyMove }: GameMapProps) {
+export function GameMap({ gameState, myPlayerId, moveMode, battleMode, onArmyMove, onBattleStart }: GameMapProps) {
   const [tooltip, setTooltip] = useState<Tooltip | null>(null);
   const [selectedArmyIds, setSelectedArmyIds] = useState<string[]>([]);
   const [selectedTerritoryId, setSelectedTerritoryId] = useState<string | null>(null);
@@ -138,11 +140,33 @@ export function GameMap({ gameState, myPlayerId, moveMode, onArmyMove }: GameMap
     }
   }, [moveMode]);
 
+  const getBattleInfo = (territoryId: string): { canBattle: boolean; enemyPlayerIds: string[] } => {
+    const armiesHere = armies.filter((a) => a.territoryId === territoryId);
+    const hasMyArmies = armiesHere.some((a) => a.playerId === myPlayerId);
+    if (!hasMyArmies) return { canBattle: false, enemyPlayerIds: [] };
+    const enemyPlayerIds = [...new Set(
+      armiesHere.filter((a) => a.playerId !== myPlayerId).map((a) => a.playerId),
+    )];
+    return { canBattle: enemyPlayerIds.length > 0, enemyPlayerIds };
+  };
+
   const getTerritoryFill = (territoryId: string): string => {
+    if (battleMode) {
+      const { canBattle } = getBattleInfo(territoryId);
+      return canBattle ? '#e07020' : '#555';
+    }
     const state = gameState.territories.find((t) => t.id === territoryId);
     if (!state?.ownerId) return UNOWNED_FILL;
     const player = gameState.players.find((p) => p.id === state.ownerId);
     return player ? PLAYER_COLOR_VALUES[player.color] : UNOWNED_FILL;
+  };
+
+  const handleTerritoryClick = (territoryId: string) => {
+    if (!battleMode) return;
+    const { canBattle, enemyPlayerIds } = getBattleInfo(territoryId);
+    if (!canBattle) return;
+    const defenderId = enemyPlayerIds[Math.floor(Math.random() * enemyPlayerIds.length)];
+    onBattleStart(territoryId, defenderId);
   };
 
   const territoryById = Object.fromEntries(TERRITORY_DEFS.map((t) => [t.id, t]));
@@ -270,7 +294,7 @@ export function GameMap({ gameState, myPlayerId, moveMode, onArmyMove }: GameMap
         viewBox={`0 0 ${MAP_WIDTH} ${MAP_HEIGHT}`}
         className="game-map"
         preserveAspectRatio="xMidYMid meet"
-        style={moveMode ? { cursor: 'crosshair' } : undefined}
+        style={moveMode ? { cursor: 'crosshair' } : battleMode ? { cursor: 'pointer' } : undefined}
         onMouseMove={handleSvgMouseMove}
         onMouseUp={handleSvgMouseUp}
       >
@@ -309,11 +333,13 @@ export function GameMap({ gameState, myPlayerId, moveMode, onArmyMove }: GameMap
                 stroke="#0a1a0a"
                 strokeWidth={1.5}
                 className="territory-polygon"
+                style={battleMode ? { cursor: getBattleInfo(territory.id).canBattle ? 'pointer' : 'not-allowed' } : undefined}
+                onClick={() => handleTerritoryClick(territory.id)}
                 onMouseEnter={() => {
-                  if (isDragging) setHoverTerritoryId(territory.id);
+                  if (isDragging || battleMode) setHoverTerritoryId(territory.id);
                 }}
                 onMouseLeave={() => {
-                  if (isDragging) setHoverTerritoryId((prev) =>
+                  if (isDragging || battleMode) setHoverTerritoryId((prev) =>
                     prev === territory.id ? null : prev,
                   );
                 }}

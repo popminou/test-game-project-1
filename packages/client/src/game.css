@@ -529,6 +529,115 @@ body {
   cursor: not-allowed;
 }
 
+.btn-start-battle {
+  width: 100%;
+  max-width: 150px;
+  padding: 0.7rem;
+  background: #3a1a1a;
+  color: #e07020;
+  font-size: 0.9rem;
+  font-weight: bold;
+  font-family: inherit;
+  letter-spacing: 1px;
+  border: 2px solid #e07020;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.btn-start-battle:hover {
+  background: #4e2020;
+}
+
+.btn-start-battle.active {
+  background: #e07020;
+  color: #0d1117;
+}
+
+.btn-start-battle:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+/* ---- Battle Modal ---- */
+
+.battle-modal {
+  background: #131c27;
+  border: 1px solid #c9a227;
+  border-radius: 6px;
+  padding: 1.5rem 2rem;
+  min-width: 500px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.6);
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+}
+
+.battle-title {
+  text-align: center;
+  font-family: Georgia, serif;
+  font-size: 1.2rem;
+  color: #c9a227;
+  margin: 0;
+}
+
+.battle-sides {
+  display: flex;
+  gap: 0;
+  align-items: stretch;
+}
+
+.battle-side {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem;
+}
+
+.battle-divider {
+  width: 1px;
+  background: #1e3a54;
+  margin: 0 0.5rem;
+}
+
+.battle-player-name {
+  margin: 0;
+  font-family: Georgia, serif;
+  font-size: 1rem;
+}
+
+.battle-role {
+  margin: 0;
+  font-size: 0.7rem;
+  color: #6a8fa8;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.battle-armies {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  justify-content: center;
+  min-height: 40px;
+  align-content: flex-start;
+}
+
+.battle-army-unit {
+  width: 18px;
+  height: 18px;
+  border-radius: 2px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.battle-army-count {
+  margin: 0;
+  font-size: 0.8rem;
+  color: #6a8fa8;
+}
+
 .btn-end-turn {
   width: 100%;
   padding: 0.8rem;

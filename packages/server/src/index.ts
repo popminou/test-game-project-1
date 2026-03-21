@@ -17,6 +17,7 @@ import {
   TERRITORY_DEFS,
   generateTerritoryConnections,
   areTerritoriesConnected,
+  type BattleStartPayload,
 } from '@test-project/iso';
 
 const app = express();
@@ -285,6 +286,40 @@ io.on('connection', (socket) => {
     io.emit('game:state', gameState);
     callback({ success: true });
     console.log(`[card:draw] ${player.name} drew ${card.name}`);
+  });
+
+  socket.on('battle:start', ({ territoryId, defenderPlayerId }: BattleStartPayload, callback) => {
+    if (gameState.phase !== 'playing') {
+      callback({ success: false, error: 'Game is not in progress' });
+      return;
+    }
+    const current = gameState.players[gameState.currentPlayerIndex];
+    if (!current || current.id !== socket.id) {
+      callback({ success: false, error: 'It is not your turn' });
+      return;
+    }
+    if (current.currentActionPoints <= 0) {
+      callback({ success: false, error: 'No action points remaining' });
+      return;
+    }
+    const attackerArmies = gameState.armies.filter(
+      (a) => a.playerId === socket.id && a.territoryId === territoryId,
+    );
+    if (attackerArmies.length === 0) {
+      callback({ success: false, error: 'You have no armies in that territory' });
+      return;
+    }
+    const defenderArmies = gameState.armies.filter(
+      (a) => a.playerId === defenderPlayerId && a.territoryId === territoryId,
+    );
+    if (defenderArmies.length === 0) {
+      callback({ success: false, error: 'Defender has no armies in that territory' });
+      return;
+    }
+    current.currentActionPoints--;
+    io.emit('game:state', gameState);
+    callback({ success: true });
+    console.log(`[battle:start] ${current.name} attacks ${defenderPlayerId} in ${territoryId}`);
   });
 
   socket.on('disconnect', () => {

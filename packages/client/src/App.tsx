@@ -70,6 +70,14 @@ export function App() {
       }
     });
   };
+  const handleBattleStart = (territoryId: string, defenderPlayerId: string) => {
+    socket?.emit('battle:start', { territoryId, defenderPlayerId }, (res) => {
+      if (!res.success) {
+        setError(res.error ?? 'Failed to start battle');
+        setTimeout(() => setError(null), 4000);
+      }
+    });
+  };
 
   if (!gameState) {
     return <div className="loading">Connecting to server…</div>;
@@ -91,6 +99,6 @@ export function App() {
 
   // myPlayerId is non-null here because hasJoined requires it
   return (
-    <GameBoard gameState={gameState} myPlayerId={myPlayerId!} onEndTurn={handleEndTurn} onLeave={handleLeave} onArmyMove={handleArmyMove} onCardPlay={handleCardPlay} onCardDiscard={handleCardDiscard} />
+    <GameBoard gameState={gameState} myPlayerId={myPlayerId!} onEndTurn={handleEndTurn} onLeave={handleLeave} onArmyMove={handleArmyMove} onCardPlay={handleCardPlay} onCardDiscard={handleCardDiscard} onBattleStart={handleBattleStart} />
   );
 }

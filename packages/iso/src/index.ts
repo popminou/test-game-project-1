@@ -75,6 +75,11 @@ export interface ArmyMovePayload {
   toTerritoryId: string;
 }
 
+export interface BattleStartPayload {
+  territoryId: string;
+  defenderPlayerId: string;
+}
+
 export interface CardPlayPayload {
   cardId: string;
 }
@@ -110,6 +115,10 @@ export interface ClientToServerEvents {
     callback: (response: { success: boolean; error?: string }) => void,
   ) => void;
   'card:draw': (
+    callback: (response: { success: boolean; error?: string }) => void,
+  ) => void;
+  'battle:start': (
+    payload: BattleStartPayload,
     callback: (response: { success: boolean; error?: string }) => void,
   ) => void;
 }
