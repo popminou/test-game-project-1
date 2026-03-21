@@ -16,20 +16,16 @@ export function PlayerBar({ player, isMyTurn, actionMode, hasAP, onToggleActionM
   return (
     <div className="ap-bar">
       <ActionPointsDisplay player={player} isMyTurn={isMyTurn} />
-      {isMyTurn && (
-        <>
-          <MoveArmiesButton
-            moveMode={actionMode === 'move'}
-            hasAP={hasAP}
-            onToggleMoveMode={() => onToggleActionMode('move')}
-          />
-          <StartBattleButton
-            battleMode={actionMode === 'battle'}
-            hasAP={hasAP}
-            onToggleBattleMode={() => onToggleActionMode('battle')}
-          />
-        </>
-      )}
+      <MoveArmiesButton
+        moveMode={actionMode === 'move'}
+        hasAP={isMyTurn && hasAP}
+        onToggleMoveMode={() => onToggleActionMode('move')}
+      />
+      <StartBattleButton
+        battleMode={actionMode === 'battle'}
+        hasAP={isMyTurn && hasAP}
+        onToggleBattleMode={() => onToggleActionMode('battle')}
+      />
     </div>
   );
 }
