@@ -130,6 +130,7 @@ export function GameMap({ gameState, myPlayerId, actionMode, onArmyMove, onBattl
 
   const svgRef = useRef<SVGSVGElement>(null);
   const mouseDownPos = useRef<{ x: number; y: number } | null>(null);
+  const pendingDeselectArmyId = useRef<string | null>(null);
 
   // Clear selection when move mode is disabled
   useEffect(() => {
@@ -198,10 +199,13 @@ export function GameMap({ gameState, myPlayerId, actionMode, onArmyMove, onBattl
     mouseDownPos.current = getSvgPoint(svgRef.current, e);
 
     if (selectedTerritoryId === null || selectedTerritoryId === army.territoryId) {
-      setSelectedTerritoryId(army.territoryId);
-      setSelectedArmyIds((prev) =>
-        prev.includes(army.id) ? prev : [...prev, army.id],
-      );
+      if (selectedArmyIds.includes(army.id)) {
+        // Defer deselect to mouseup so dragging selected armies still works
+        pendingDeselectArmyId.current = army.id;
+      } else {
+        setSelectedTerritoryId(army.territoryId);
+        setSelectedArmyIds((prev) => [...prev, army.id]);
+      }
     } else {
       setSelectedTerritoryId(army.territoryId);
       setSelectedArmyIds([army.id]);
@@ -224,6 +228,19 @@ export function GameMap({ gameState, myPlayerId, actionMode, onArmyMove, onBattl
   const handleSvgMouseUp = (e: React.MouseEvent<SVGSVGElement>) => {
     if (!moveMode || !mouseDownPos.current) return;
     e.stopPropagation();
+
+    if (!isDragging && pendingDeselectArmyId.current) {
+      const armyId = pendingDeselectArmyId.current;
+      pendingDeselectArmyId.current = null;
+      setSelectedArmyIds((prev) => {
+        const next = prev.filter((id) => id !== armyId);
+        if (next.length === 0) setSelectedTerritoryId(null);
+        return next;
+      });
+      mouseDownPos.current = null;
+      return;
+    }
+    pendingDeselectArmyId.current = null;
 
     if (isDragging && hoverTerritoryId && selectedTerritoryId && selectedArmyIds.length > 0) {
       if (hoverTerritoryId === selectedTerritoryId) {
