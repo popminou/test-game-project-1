@@ -9,7 +9,6 @@ import {
   type GameState,
   type Player,
   type Card,
-  type CardType,
   type TerritoryState,
   type ServerToClientEvents,
   type ClientToServerEvents,
@@ -23,6 +22,7 @@ import {
   type BattleRollPayload,
   type BattleCardPlayPayload,
 } from '@test-project/iso';
+import { CARD_DEFINITIONS } from './cards';
 
 const app = express();
 const httpServer = createServer(app);
@@ -44,18 +44,11 @@ app.get(API_ROUTES.health, (_req, res) => {
 
 // ---- Card System ----
 
-const CARD_DEFINITIONS: { type: CardType; name: string; description: string }[] = [
-  { type: 'reinforce', name: 'Reinforcements', description: 'Summon additional armies to any territory you control.' },
-  { type: 'fortify', name: 'Fortify', description: 'Strengthen your defenses on a territory.' },
-  { type: 'raid', name: 'Raid', description: 'Launch a surprise attack on an adjacent enemy territory.' },
-  { type: 'diplomacy', name: 'Diplomacy', description: 'Negotiate a temporary truce with another player.' },
-];
-
 function createDeck(): Card[] {
   const deck: Card[] = [];
   let counter = 0;
-  // 8 cards per type = 32 total
-  for (let i = 0; i < 8; i++) {
+  // 3 copies of each definition = 27 total
+  for (let i = 0; i < 3; i++) {
     for (const def of CARD_DEFINITIONS) {
       deck.push({ id: `card-${++counter}`, ...def });
     }

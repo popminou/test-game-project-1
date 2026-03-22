@@ -15,10 +15,13 @@ export const API_ROUTES = {
 
 // ---- Game Types ----
 
-export type CardType = 'reinforce' | 'fortify' | 'raid' | 'diplomacy';
+export type CardPhase = 'preparation' | 'action' | 'battle' | 'upkeep';
+
+export type CardType = 'event' | 'building' | 'power';
 
 export interface Card {
   id: string;
+  phases: CardPhase[];
   type: CardType;
   name: string;
   description: string;

@@ -1096,17 +1096,14 @@ body {
   flex-shrink: 0;
 }
 
-.card-type-reinforce .card-type-band { background: #c9a227; }
-.card-type-reinforce.card-selected { border-color: #c9a227; }
+.card-type-event .card-type-band { background: #c9a227; }
+.card-type-event.card-selected { border-color: #c9a227; }
 
-.card-type-fortify .card-type-band { background: #2980b9; }
-.card-type-fortify.card-selected { border-color: #2980b9; }
+.card-type-building .card-type-band { background: #2980b9; }
+.card-type-building.card-selected { border-color: #2980b9; }
 
-.card-type-raid .card-type-band { background: #c0392b; }
-.card-type-raid.card-selected { border-color: #c0392b; }
-
-.card-type-diplomacy .card-type-band { background: #27ae60; }
-.card-type-diplomacy.card-selected { border-color: #27ae60; }
+.card-type-power .card-type-band { background: #8e44ad; }
+.card-type-power.card-selected { border-color: #8e44ad; }
 
 .card-name {
   padding: 8px 8px 4px;

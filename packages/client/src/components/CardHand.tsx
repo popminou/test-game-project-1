@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
-import type { Card } from '@test-project/iso';
+import type { Card, CardPhase } from '@test-project/iso';
 
 interface CardHandProps {
   cards: Card[];
   isMyTurn: boolean;
   hasAP: boolean;
+  activeCardPhase: CardPhase;
   mapInnerRef: React.RefObject<HTMLDivElement | null>;
   onPlay: (cardId: string) => void;
   onDiscard: (cardId: string) => void;
@@ -47,12 +48,19 @@ interface FlyingState {
 
 const DRAG_THRESHOLD = 5;
 
-export function CardHand({ cards, isMyTurn, hasAP, mapInnerRef, onPlay, onDiscard, battleDropRef, onBattleCardPlay, battleCardZoneRef }: CardHandProps) {
+export function CardHand({ cards, isMyTurn, hasAP, activeCardPhase, mapInnerRef, onPlay, onDiscard, battleDropRef, onBattleCardPlay, battleCardZoneRef }: CardHandProps) {
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
   const [drag, setDrag] = useState<DragState | null>(null);
   const [returning, setReturning] = useState<ReturnState | null>(null);
   const [flying, setFlying] = useState<FlyingState | null>(null);
   const cardRefs = useRef<Map<string, HTMLDivElement>>(new Map());
+
+  // During battle card phase both players can act, not just the current turn player
+  const isCardDisabled = (card: Card) => {
+    if (!card.phases.includes(activeCardPhase)) return true;
+    if (activeCardPhase === 'battle') return false;
+    return !isMyTurn;
+  };
 
   const isDragging = drag !== null &&
     (Math.abs(drag.x - drag.startX) > DRAG_THRESHOLD || Math.abs(drag.y - drag.startY) > DRAG_THRESHOLD);
@@ -123,7 +131,8 @@ export function CardHand({ cards, isMyTurn, hasAP, mapInnerRef, onPlay, onDiscar
         const moved = Math.abs(prev.x - prev.startX) > DRAG_THRESHOLD ||
                       Math.abs(prev.y - prev.startY) > DRAG_THRESHOLD;
 
-        if (!moved && isMyTurn) {
+        const card = cards.find((c) => c.id === prev.cardId);
+        if (!moved && isMyTurn && card && !isCardDisabled(card)) {
           setSelectedCardId((sel) => (sel === prev.cardId ? null : prev.cardId));
           return null;
         }
@@ -195,9 +204,11 @@ export function CardHand({ cards, isMyTurn, hasAP, mapInnerRef, onPlay, onDiscar
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [drag, isMyTurn, hasAP, cards, mapInnerRef, onPlay, battleDropRef, onBattleCardPlay, battleCardZoneRef]);
+  }, [drag, isMyTurn, hasAP, activeCardPhase, cards, mapInnerRef, onPlay, battleDropRef, onBattleCardPlay, battleCardZoneRef]);
 
   const handleMouseDown = (e: React.MouseEvent, cardId: string) => {
+    const card = cards.find((c) => c.id === cardId);
+    if (!card || isCardDisabled(card)) return;
     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
     setDrag({
       cardId,
@@ -235,7 +246,7 @@ export function CardHand({ cards, isMyTurn, hasAP, mapInnerRef, onPlay, onDiscar
                   if (el) cardRefs.current.set(card.id, el);
                   else cardRefs.current.delete(card.id);
                 }}
-                className={`card card-type-${card.type}${!isMyTurn ? ' card-disabled' : ''}${selectedCardId === card.id ? ' card-selected' : ''}${isBeingDragged || isReturning || isFlying ? ' card-dragging-source' : ''}`}
+                className={`card card-type-${card.type}${isCardDisabled(card) ? ' card-disabled' : ''}${selectedCardId === card.id ? ' card-selected' : ''}${isBeingDragged || isReturning || isFlying ? ' card-dragging-source' : ''}`}
                 onMouseDown={(e) => handleMouseDown(e, card.id)}
               >
                 <div className="card-type-band" />

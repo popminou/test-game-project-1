@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import type { GameState } from '@test-project/iso';
+import type { CardPhase, GameState } from '@test-project/iso';
 import { GameMap } from './GameMap';
 import { PlayerPanel } from './PlayerPanel';
 import { PlayerBar } from './PlayerBar';
@@ -42,6 +42,8 @@ export function GameBoard({ gameState, myPlayerId, onEndTurn, onLeave, onArmyMov
       gameState.activeBattle.defenderPlayerId === myPlayerId)
     ? gameState.activeBattle
     : null;
+
+  const activeCardPhase: CardPhase = activeBattle?.phase === 'card' ? 'battle' : 'action';
 
   // Exit action mode automatically when action points run out
   useEffect(() => {
@@ -103,6 +105,7 @@ export function GameBoard({ gameState, myPlayerId, onEndTurn, onLeave, onArmyMov
             cards={myPlayer.hand}
             isMyTurn={isMyTurn}
             hasAP={(myPlayer.currentActionPoints ?? 0) > 0}
+            activeCardPhase={activeCardPhase}
             mapInnerRef={mapInnerRef}
             onPlay={onCardPlay}
             onDiscard={onCardDiscard}
