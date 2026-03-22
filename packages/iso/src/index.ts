@@ -50,6 +50,9 @@ export interface Player {
 
 export type GamePhase = 'lobby' | 'playing' | 'ended';
 
+export type TurnStep = 'preparation' | 'action' | 'upkeep';
+export type ActionPhase = 'move' | 'battle';
+
 export interface TerritoryState {
   id: string;
   ownerId: string | null;
@@ -86,6 +89,8 @@ export interface GameState {
   deck: Card[];
   playedCards: Card[];
   activeBattle: ActiveBattle | null;
+  turnStep: TurnStep;
+  actionPhase: ActionPhase | null;
 }
 
 export interface ArmyMovePayload {
@@ -176,6 +181,9 @@ export interface ClientToServerEvents {
     callback: (response: { success: boolean; error?: string }) => void,
   ) => void;
   'battle:card:done': (
+    callback: (response: { success: boolean; error?: string }) => void,
+  ) => void;
+  'step:advance': (
     callback: (response: { success: boolean; error?: string }) => void,
   ) => void;
 }

@@ -1,14 +1,29 @@
-import type { GameState } from '@test-project/iso';
+import type { GameState, TurnStep } from '@test-project/iso';
 import { PLAYER_COLOR_VALUES } from '@test-project/iso';
 
 interface PlayerPanelProps {
   gameState: GameState;
   myPlayerId: string;
   onEndTurn: () => void;
+  onStepAdvance: () => void;
   onLeave: () => void;
 }
 
-export function PlayerPanel({ gameState, myPlayerId, onEndTurn, onLeave }: PlayerPanelProps) {
+const STEP_LABELS: Record<TurnStep, string> = {
+  preparation: 'Preparation',
+  action: 'Action',
+  upkeep: 'Upkeep',
+};
+
+const STEP_ADVANCE_LABELS: Record<TurnStep, string> = {
+  preparation: 'Start Action Step',
+  action: 'End Action Step',
+  upkeep: 'End Turn',
+};
+
+const TURN_STEPS: TurnStep[] = ['preparation', 'action', 'upkeep'];
+
+export function PlayerPanel({ gameState, myPlayerId, onEndTurn: _onEndTurn, onStepAdvance, onLeave }: PlayerPanelProps) {
   const currentPlayer = gameState.players[gameState.currentPlayerIndex];
   const isMyTurn = currentPlayer?.id === myPlayerId;
 
@@ -70,11 +85,23 @@ export function PlayerPanel({ gameState, myPlayerId, onEndTurn, onLeave }: Playe
         </div>
       </div>
 
+      {/* Turn step indicator */}
+      {gameState.phase === 'playing' && (
+        <div className="turn-steps">
+          {TURN_STEPS.map((step, i) => (
+            <span key={step} className={`turn-step${gameState.turnStep === step ? ' turn-step--active' : ''}`}>
+              {i > 0 && <span className="turn-step-sep">›</span>}
+              {STEP_LABELS[step]}
+            </span>
+          ))}
+        </div>
+      )}
+
       {/* End turn / waiting */}
       <div className="end-turn-section">
         {isMyTurn ? (
-          <button className="btn-end-turn" onClick={onEndTurn}>
-            End Turn
+          <button className="btn-end-turn" onClick={onStepAdvance}>
+            {STEP_ADVANCE_LABELS[gameState.turnStep]}
           </button>
         ) : (
           <p className="waiting-for-turn">

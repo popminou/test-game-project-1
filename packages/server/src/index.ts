@@ -75,7 +75,22 @@ function createInitialState(): GameState {
     deck: [],
     playedCards: [],
     activeBattle: null,
+    turnStep: 'preparation',
+    actionPhase: null,
   };
+}
+
+function advanceTurn(): void {
+  gameState.currentPlayerIndex =
+    (gameState.currentPlayerIndex + 1) % gameState.players.length;
+  if (gameState.currentPlayerIndex === 0) gameState.turnNumber++;
+  const next = gameState.players[gameState.currentPlayerIndex];
+  next.currentActionPoints = next.maxActionPoints;
+  gameState.turnStep = 'preparation';
+  gameState.actionPhase = null;
+  console.log(
+    `[turn] Now: ${gameState.players[gameState.currentPlayerIndex].name} (turn ${gameState.turnNumber})`,
+  );
 }
 
 let gameState: GameState = createInitialState();
@@ -130,6 +145,8 @@ io.on('connection', (socket) => {
     gameState.phase = 'playing';
     gameState.turnNumber = 1;
     gameState.currentPlayerIndex = 0;
+    gameState.turnStep = 'preparation';
+    gameState.actionPhase = null;
     gameState.territoryConnections = generateTerritoryConnections();
     gameState.deck = createDeck();
     console.log('[connections]', JSON.stringify(gameState.territoryConnections, null, 2));
@@ -161,16 +178,39 @@ io.on('connection', (socket) => {
       socket.emit('game:error', 'It is not your turn');
       return;
     }
-    gameState.currentPlayerIndex =
-      (gameState.currentPlayerIndex + 1) % gameState.players.length;
-    if (gameState.currentPlayerIndex === 0) gameState.turnNumber++;
-    // Restore action points for the player whose turn is starting
-    const next = gameState.players[gameState.currentPlayerIndex];
-    next.currentActionPoints = next.maxActionPoints;
+    advanceTurn();
     io.emit('game:state', gameState);
-    console.log(
-      `[turn] Now: ${gameState.players[gameState.currentPlayerIndex].name} (turn ${gameState.turnNumber})`,
-    );
+  });
+
+  socket.on('step:advance', (callback) => {
+    if (gameState.phase !== 'playing') {
+      callback({ success: false, error: 'Game is not in progress' });
+      return;
+    }
+    const current = gameState.players[gameState.currentPlayerIndex];
+    if (!current || current.id !== socket.id) {
+      callback({ success: false, error: 'It is not your turn' });
+      return;
+    }
+    if (gameState.activeBattle) {
+      callback({ success: false, error: 'Cannot advance step during a battle' });
+      return;
+    }
+    if (gameState.turnStep === 'preparation') {
+      // Preparation has no logic yet — advance straight to action/move
+      gameState.turnStep = 'action';
+      gameState.actionPhase = 'move';
+    } else if (gameState.turnStep === 'action') {
+      gameState.turnStep = 'upkeep';
+      gameState.actionPhase = null;
+      // Upkeep has no logic yet — advance straight to next player's turn
+      advanceTurn();
+    } else {
+      // upkeep (fallback, in case it's reached directly)
+      advanceTurn();
+    }
+    io.emit('game:state', gameState);
+    callback({ success: true });
   });
 
   socket.on('army:move', ({ armyIds, toTerritoryId }, callback) => {
@@ -181,6 +221,10 @@ io.on('connection', (socket) => {
     const current = gameState.players[gameState.currentPlayerIndex];
     if (!current || current.id !== socket.id) {
       callback({ success: false, error: 'It is not your turn' });
+      return;
+    }
+    if (gameState.turnStep !== 'action' || gameState.actionPhase !== 'move') {
+      callback({ success: false, error: 'Cannot move armies outside of the move phase' });
       return;
     }
     if (current.currentActionPoints <= 0) {
@@ -304,6 +348,7 @@ io.on('connection', (socket) => {
     );
     gameState.armies.splice(idx, 1);
     gameState.activeBattle = null;
+    gameState.actionPhase = 'move';
     io.emit('game:state', gameState);
     callback({ success: true });
     const player = gameState.players.find((p) => p.id === socket.id);
@@ -429,6 +474,7 @@ io.on('connection', (socket) => {
     const player = gameState.players.find((p) => p.id === socket.id);
     console.log(`[battle:end] ${player?.name ?? socket.id} ended the battle`);
     gameState.activeBattle = null;
+    gameState.actionPhase = 'move';
     io.emit('game:state', gameState);
     callback({ success: true });
   });
@@ -441,6 +487,10 @@ io.on('connection', (socket) => {
     const current = gameState.players[gameState.currentPlayerIndex];
     if (!current || current.id !== socket.id) {
       callback({ success: false, error: 'It is not your turn' });
+      return;
+    }
+    if (gameState.turnStep !== 'action' || gameState.actionPhase !== 'move') {
+      callback({ success: false, error: 'Cannot start a battle outside of the move phase' });
       return;
     }
     if (current.currentActionPoints <= 0) {
@@ -475,6 +525,7 @@ io.on('connection', (socket) => {
       attackerDice: null,
       defenderDice: null,
     };
+    gameState.actionPhase = 'battle';
     io.emit('game:state', gameState);
     callback({ success: true });
     console.log(`[battle:start] ${current.name} attacks ${defenderPlayerId} in ${territoryId}`);

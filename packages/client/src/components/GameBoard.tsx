@@ -13,6 +13,7 @@ interface GameBoardProps {
   gameState: GameState;
   myPlayerId: string;
   onEndTurn: () => void;
+  onStepAdvance: () => void;
   onLeave: () => void;
   onArmyMove: (armyIds: string[], toTerritoryId: string) => void;
   onCardPlay: (cardId: string) => void;
@@ -26,8 +27,7 @@ interface GameBoardProps {
   onBattleCardDone: () => void;
 }
 
-export function GameBoard({ gameState, myPlayerId, onEndTurn, onLeave, onArmyMove, onCardPlay, onCardDiscard, onBattleStart, onBattleRetreat, onBattleResolve, onBattleRoll, onBattleEnd, onBattleCardPlay, onBattleCardDone }: GameBoardProps) {
-  const [actionMode, setActionMode] = useState<ActionMode>(null);
+export function GameBoard({ gameState, myPlayerId, onEndTurn, onStepAdvance, onLeave, onArmyMove, onCardPlay, onCardDiscard, onBattleStart, onBattleRetreat, onBattleResolve, onBattleRoll, onBattleEnd, onBattleCardPlay, onBattleCardDone }: GameBoardProps) {
   const mapInnerRef = useRef<HTMLDivElement>(null);
   const battleOverlayRef = useRef<HTMLDivElement>(null);
   const myBattleZoneRef = useRef<HTMLDivElement>(null);
@@ -45,12 +45,14 @@ export function GameBoard({ gameState, myPlayerId, onEndTurn, onLeave, onArmyMov
 
   const activeCardPhase: CardPhase = activeBattle?.phase === 'card' ? 'battle' : 'action';
 
-  // Exit action mode automatically when action points run out
+  const [actionMode, setActionMode] = useState<ActionMode>(null);
+
+  // Reset action mode when leaving the move phase
   useEffect(() => {
-    if (actionMode && myPlayer && myPlayer.currentActionPoints <= 0) {
+    if (gameState.turnStep !== 'action' || gameState.actionPhase !== 'move') {
       setActionMode(null);
     }
-  }, [myPlayer?.currentActionPoints]);
+  }, [gameState.turnStep, gameState.actionPhase]);
 
   const toggleActionMode = (mode: NonNullable<ActionMode>) => {
     setActionMode((prev) => (prev === mode ? null : mode));
@@ -68,6 +70,7 @@ export function GameBoard({ gameState, myPlayerId, onEndTurn, onLeave, onArmyMov
           <PlayerBar
             player={currentPlayer}
             isMyTurn={isMyTurn}
+            inActionStep={isMyTurn && gameState.turnStep === 'action' && gameState.actionPhase === 'move'}
             actionMode={actionMode}
             hasAP={(myPlayer?.currentActionPoints ?? 0) > 0}
             onToggleActionMode={toggleActionMode}
@@ -119,6 +122,7 @@ export function GameBoard({ gameState, myPlayerId, onEndTurn, onLeave, onArmyMov
         gameState={gameState}
         myPlayerId={myPlayerId}
         onEndTurn={onEndTurn}
+        onStepAdvance={onStepAdvance}
         onLeave={onLeave}
       />
     </div>

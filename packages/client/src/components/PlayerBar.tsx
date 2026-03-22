@@ -7,25 +7,30 @@ import type { ActionMode } from './GameBoard';
 interface PlayerBarProps {
   player: Player;
   isMyTurn: boolean;
+  inActionStep: boolean;
   actionMode: ActionMode;
   hasAP: boolean;
   onToggleActionMode: (mode: NonNullable<ActionMode>) => void;
 }
 
-export function PlayerBar({ player, isMyTurn, actionMode, hasAP, onToggleActionMode }: PlayerBarProps) {
+export function PlayerBar({ player, isMyTurn, inActionStep, actionMode, hasAP, onToggleActionMode }: PlayerBarProps) {
   return (
     <div className="ap-bar">
       <ActionPointsDisplay player={player} isMyTurn={isMyTurn} />
-      <MoveArmiesButton
-        moveMode={actionMode === 'move'}
-        hasAP={isMyTurn && hasAP}
-        onToggleMoveMode={() => onToggleActionMode('move')}
-      />
-      <StartBattleButton
-        battleMode={actionMode === 'battle'}
-        hasAP={isMyTurn && hasAP}
-        onToggleBattleMode={() => onToggleActionMode('battle')}
-      />
+      {inActionStep && (
+        <>
+          <MoveArmiesButton
+            moveMode={actionMode === 'move'}
+            hasAP={isMyTurn && hasAP}
+            onToggleMoveMode={() => onToggleActionMode('move')}
+          />
+          <StartBattleButton
+            battleMode={actionMode === 'battle'}
+            hasAP={isMyTurn && hasAP}
+            onToggleBattleMode={() => onToggleActionMode('battle')}
+          />
+        </>
+      )}
     </div>
   );
 }

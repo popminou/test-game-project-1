@@ -41,6 +41,14 @@ export function App() {
 
   const handleStart = () => socket?.emit('game:start');
   const handleEndTurn = () => socket?.emit('turn:end');
+  const handleStepAdvance = () => {
+    socket?.emit('step:advance', (res) => {
+      if (!res.success) {
+        setError(res.error ?? 'Failed to advance step');
+        setTimeout(() => setError(null), 4000);
+      }
+    });
+  };
   const handleArmyMove = (armyIds: string[], toTerritoryId: string) => {
     socket?.emit('army:move', { armyIds, toTerritoryId }, (res) => {
       if (!res.success) {
@@ -147,6 +155,6 @@ export function App() {
 
   // myPlayerId is non-null here because hasJoined requires it
   return (
-    <GameBoard gameState={gameState} myPlayerId={myPlayerId!} onEndTurn={handleEndTurn} onLeave={handleLeave} onArmyMove={handleArmyMove} onCardPlay={handleCardPlay} onCardDiscard={handleCardDiscard} onBattleStart={handleBattleStart} onBattleRetreat={handleBattleRetreat} onBattleResolve={handleBattleResolve} onBattleRoll={handleBattleRoll} onBattleEnd={handleBattleEnd} onBattleCardPlay={handleBattleCardPlay} onBattleCardDone={handleBattleCardDone} />
+    <GameBoard gameState={gameState} myPlayerId={myPlayerId!} onEndTurn={handleEndTurn} onStepAdvance={handleStepAdvance} onLeave={handleLeave} onArmyMove={handleArmyMove} onCardPlay={handleCardPlay} onCardDiscard={handleCardDiscard} onBattleStart={handleBattleStart} onBattleRetreat={handleBattleRetreat} onBattleResolve={handleBattleResolve} onBattleRoll={handleBattleRoll} onBattleEnd={handleBattleEnd} onBattleCardPlay={handleBattleCardPlay} onBattleCardDone={handleBattleCardDone} />
   );
 }
