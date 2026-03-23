@@ -84,7 +84,7 @@ export function GameBoard({ gameState, myPlayerId, onEndTurn, onStepAdvance, onL
             onArmyMove={onArmyMove}
             onBattleStart={handleBattleStart}
           />
-          <PlayedCards cards={gameState.playedCards} />
+          <PlayedCards cards={gameState.activeCards} />
           {activeBattle && (
             <BattleModal
               gameState={gameState}

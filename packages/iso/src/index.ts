@@ -19,12 +19,29 @@ export type CardPhase = 'preparation' | 'action' | 'battle' | 'upkeep';
 
 export type CardType = 'event' | 'building' | 'power';
 
+/** Which step/phase a 'turn-step' card expires at. Extends TurnStep with 'battle' (the battle sub-phase within the action step). */
+export type DurationStep = 'preparation' | 'action' | 'upkeep' | 'battle';
+
+export type CardDuration =
+  | { type: 'instant' }
+  | { type: 'turn-step'; step: DurationStep }
+  | { type: 'turns'; count: number }
+  | { type: 'permanent' };
+
 export interface Card {
   id: string;
   phases: CardPhase[];
   type: CardType;
   name: string;
   description: string;
+  duration: CardDuration;
+}
+
+export interface ActiveCard {
+  card: Card;
+  playedByPlayerId: string;
+  playedOnTurn: number;
+  turnsRemaining?: number; // only for card.duration.type === 'turns', tracks remaining turns at runtime
 }
 
 export type PlayerColor = 'red' | 'blue' | 'green' | 'yellow';
@@ -87,7 +104,7 @@ export interface GameState {
   currentPlayerIndex: number;
   turnNumber: number;
   deck: Card[];
-  playedCards: Card[];
+  activeCards: ActiveCard[];
   activeBattle: ActiveBattle | null;
   turnStep: TurnStep;
   actionPhase: ActionPhase | null;

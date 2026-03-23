@@ -9,6 +9,7 @@ import {
   type GameState,
   type Player,
   type Card,
+  type ActiveCard,
   type TerritoryState,
   type ServerToClientEvents,
   type ClientToServerEvents,
@@ -73,7 +74,7 @@ function createInitialState(): GameState {
     currentPlayerIndex: 0,
     turnNumber: 0,
     deck: [],
-    playedCards: [],
+    activeCards: [],
     activeBattle: null,
     turnStep: 'preparation',
     actionPhase: null,
@@ -197,16 +198,25 @@ io.on('connection', (socket) => {
       return;
     }
     if (gameState.turnStep === 'preparation') {
-      // Preparation has no logic yet — advance straight to action/move
+      gameState.activeCards = gameState.activeCards.filter(
+        (ac) => !(ac.card.duration.type === 'turn-step' && ac.card.duration.step === 'preparation'),
+      );
       gameState.turnStep = 'action';
       gameState.actionPhase = 'move';
     } else if (gameState.turnStep === 'action') {
+      gameState.activeCards = gameState.activeCards.filter(
+        (ac) => !(ac.card.duration.type === 'turn-step' && ac.card.duration.step === 'action'),
+      );
       gameState.turnStep = 'upkeep';
       gameState.actionPhase = null;
-      // Upkeep has no logic yet — advance straight to next player's turn
-      advanceTurn();
-    } else {
-      // upkeep (fallback, in case it's reached directly)
+    } else if (gameState.turnStep === 'upkeep') {
+      gameState.activeCards = gameState.activeCards
+        .map((ac) =>
+          ac.card.duration.type === 'turns' && ac.turnsRemaining !== undefined
+            ? { ...ac, turnsRemaining: ac.turnsRemaining - 1 }
+            : ac,
+        )
+        .filter((ac) => ac.card.duration.type !== 'turns' || (ac.turnsRemaining ?? 0) > 0);
       advanceTurn();
     }
     io.emit('game:state', gameState);
@@ -281,7 +291,17 @@ io.on('connection', (socket) => {
     }
     const [card] = current.hand.splice(cardIndex, 1);
     current.currentActionPoints--;
-    gameState.playedCards.push(card);
+    if (card.duration.type === 'instant') {
+      gameState.deck.push(card);
+    } else {
+      const activeCard: ActiveCard = {
+        card,
+        playedByPlayerId: current.id,
+        playedOnTurn: gameState.turnNumber,
+        turnsRemaining: card.duration.type === 'turns' ? card.duration.count : undefined,
+      };
+      gameState.activeCards.push(activeCard);
+    }
     io.emit('game:state', gameState);
     callback({ success: true });
     console.log(`[card:play] ${current.name} played ${card.name}`);
@@ -347,6 +367,12 @@ io.on('connection', (socket) => {
       (a) => a.playerId === socket.id && a.territoryId === territoryId,
     );
     gameState.armies.splice(idx, 1);
+    gameState.activeCards = gameState.activeCards.filter(
+      (ac) => !(ac.card.duration.type === 'turn-step' && ac.card.duration.step === 'battle'),
+    );
+    if (gameState.activeBattle) {
+      gameState.deck.push(...gameState.activeBattle.attackerBattleCards, ...gameState.activeBattle.defenderBattleCards);
+    }
     gameState.activeBattle = null;
     gameState.actionPhase = 'move';
     io.emit('game:state', gameState);
@@ -473,6 +499,10 @@ io.on('connection', (socket) => {
     }
     const player = gameState.players.find((p) => p.id === socket.id);
     console.log(`[battle:end] ${player?.name ?? socket.id} ended the battle`);
+    gameState.activeCards = gameState.activeCards.filter(
+      (ac) => !(ac.card.duration.type === 'turn-step' && ac.card.duration.step === 'battle'),
+    );
+    gameState.deck.push(...gameState.activeBattle.attackerBattleCards, ...gameState.activeBattle.defenderBattleCards);
     gameState.activeBattle = null;
     gameState.actionPhase = 'move';
     io.emit('game:state', gameState);

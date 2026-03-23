@@ -1,7 +1,7 @@
-import type { Card } from '@test-project/iso';
+import type { ActiveCard } from '@test-project/iso';
 
 interface PlayedCardsProps {
-  cards: Card[];
+  cards: ActiveCard[];
 }
 
 export function PlayedCards({ cards }: PlayedCardsProps) {
@@ -12,7 +12,7 @@ export function PlayedCards({ cards }: PlayedCardsProps) {
 
   return (
     <div className="played-cards" style={{ height: stackHeight }}>
-      {cards.map((card, index) => (
+      {cards.map(({ card, turnsRemaining }, index) => (
         <div
           key={card.id}
           className={`card card-type-${card.type} played-card`}
@@ -21,6 +21,15 @@ export function PlayedCards({ cards }: PlayedCardsProps) {
           <div className="card-type-band" />
           <div className="card-name">{card.name}</div>
           <div className="card-description">{card.description}</div>
+          {card.duration.type === 'turns' && turnsRemaining !== undefined && (
+            <div className="card-duration">{turnsRemaining} turn{turnsRemaining !== 1 ? 's' : ''} left</div>
+          )}
+          {card.duration.type === 'permanent' && (
+            <div className="card-duration">Permanent</div>
+          )}
+          {card.duration.type === 'turn-step' && (
+            <div className="card-duration">Until end of {card.duration.step}</div>
+          )}
         </div>
       ))}
     </div>
