@@ -11,6 +11,16 @@ import { BattleModal } from './BattleModal';
 
 export type ActionMode = 'move' | 'battle' | null;
 
+interface DrawAnimation {
+  startId: number;
+  x: number;
+  y: number;
+  targetX: number;
+  targetY: number;
+  // false = at deck position (pre-transition), true = animating to hand
+  active: boolean;
+}
+
 interface GameBoardProps {
   gameState: GameState;
   myPlayerId: string;
@@ -34,6 +44,8 @@ export function GameBoard({ gameState, myPlayerId, onEndTurn, onStepAdvance, onL
   const mapInnerRef = useRef<HTMLDivElement>(null);
   const battleOverlayRef = useRef<HTMLDivElement>(null);
   const myBattleZoneRef = useRef<HTMLDivElement>(null);
+  const deckCardBackRef = useRef<HTMLDivElement>(null);
+  const cardHandRef = useRef<HTMLDivElement>(null);
 
   const currentPlayer = gameState.players[gameState.currentPlayerIndex];
   const isMyTurn = currentPlayer?.id === myPlayerId;
@@ -50,6 +62,7 @@ export function GameBoard({ gameState, myPlayerId, onEndTurn, onStepAdvance, onL
   const canDraw = isMyTurn && gameState.turnStep === 'preparation' && gameState.numDrawnThisTurn < 1 && gameState.deck.length > 0;
 
   const [actionMode, setActionMode] = useState<ActionMode>(null);
+  const [drawAnim, setDrawAnim] = useState<DrawAnimation | null>(null);
 
   // Reset action mode when leaving the move phase
   useEffect(() => {
@@ -58,6 +71,23 @@ export function GameBoard({ gameState, myPlayerId, onEndTurn, onStepAdvance, onL
     }
   }, [gameState.turnStep, gameState.actionPhase]);
 
+  // Kick off the draw animation CSS transition on the next frame
+  useEffect(() => {
+    if (drawAnim && !drawAnim.active) {
+      const raf = requestAnimationFrame(() => {
+        setDrawAnim((prev) => prev ? { ...prev, active: true } : null);
+      });
+      return () => cancelAnimationFrame(raf);
+    }
+  }, [drawAnim?.startId, drawAnim?.active]);
+
+  // Clear draw animation after transition completes
+  useEffect(() => {
+    if (!drawAnim?.active) return;
+    const timer = setTimeout(() => setDrawAnim(null), 400);
+    return () => clearTimeout(timer);
+  }, [drawAnim?.active]);
+
   const toggleActionMode = (mode: NonNullable<ActionMode>) => {
     setActionMode((prev) => (prev === mode ? null : mode));
   };
@@ -65,6 +95,21 @@ export function GameBoard({ gameState, myPlayerId, onEndTurn, onStepAdvance, onL
   const handleBattleStart = (territoryId: string, defenderPlayerId: string) => {
     setActionMode(null);
     onBattleStart(territoryId, defenderPlayerId);
+  };
+
+  const handleDrawCard = () => {
+    onDrawCard();
+    if (!deckCardBackRef.current || !cardHandRef.current) return;
+    const deckRect = deckCardBackRef.current.getBoundingClientRect();
+    const handRect = cardHandRef.current.getBoundingClientRect();
+    setDrawAnim({
+      startId: Date.now(),
+      x: deckRect.left,
+      y: deckRect.top,
+      targetX: handRect.left + handRect.width / 2 - 50,
+      targetY: handRect.top + (handRect.height - 150) / 2,
+      active: false,
+    });
   };
 
   return (
@@ -89,7 +134,7 @@ export function GameBoard({ gameState, myPlayerId, onEndTurn, onStepAdvance, onL
             onArmyMove={onArmyMove}
             onBattleStart={handleBattleStart}
           />
-          <DeckPile deckSize={gameState.deck.length} canDraw={canDraw} onDraw={onDrawCard} />
+          <DeckPile deckSize={gameState.deck.length} canDraw={canDraw} onDraw={handleDrawCard} cardBackRef={deckCardBackRef} />
           <DiscardPile discardedCards={gameState.discardedCards} />
           {activeBattle && (
             <BattleModal
@@ -121,6 +166,7 @@ export function GameBoard({ gameState, myPlayerId, onEndTurn, onStepAdvance, onL
             battleDropRef={activeBattle?.phase === 'card' ? battleOverlayRef : undefined}
             onBattleCardPlay={activeBattle?.phase === 'card' ? onBattleCardPlay : undefined}
             battleCardZoneRef={activeBattle?.phase === 'card' ? myBattleZoneRef : undefined}
+            handRef={cardHandRef}
           />
         )}
       </div>
@@ -131,6 +177,22 @@ export function GameBoard({ gameState, myPlayerId, onEndTurn, onStepAdvance, onL
         onStepAdvance={onStepAdvance}
         onLeave={onLeave}
       />
+      {drawAnim && (
+        <div
+          className="card-back"
+          style={{
+            position: 'fixed',
+            left: drawAnim.active ? drawAnim.targetX : drawAnim.x,
+            top: drawAnim.active ? drawAnim.targetY : drawAnim.y,
+            pointerEvents: 'none',
+            zIndex: 1500,
+            transition: drawAnim.active
+              ? 'left 0.4s ease, top 0.4s ease, transform 0.4s ease'
+              : 'none',
+            transform: drawAnim.active ? 'scale(0.85) rotate(-5deg)' : 'scale(1) rotate(0deg)',
+          }}
+        />
+      )}
     </div>
   );
 }

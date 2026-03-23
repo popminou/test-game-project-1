@@ -12,6 +12,7 @@ interface CardHandProps {
   battleDropRef?: React.RefObject<HTMLDivElement | null>;
   onBattleCardPlay?: (cardId: string) => void;
   battleCardZoneRef?: React.RefObject<HTMLDivElement | null>;
+  handRef?: React.RefObject<HTMLDivElement | null>;
 }
 
 interface DragState {
@@ -48,7 +49,7 @@ interface FlyingState {
 
 const DRAG_THRESHOLD = 5;
 
-export function CardHand({ cards, isMyTurn, hasAP, activeCardPhase, mapInnerRef, onPlay, onDiscard, battleDropRef, onBattleCardPlay, battleCardZoneRef }: CardHandProps) {
+export function CardHand({ cards, isMyTurn, hasAP, activeCardPhase, mapInnerRef, onPlay, onDiscard, battleDropRef, onBattleCardPlay, battleCardZoneRef, handRef }: CardHandProps) {
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
   const [drag, setDrag] = useState<DragState | null>(null);
   const [returning, setReturning] = useState<ReturnState | null>(null);
@@ -234,7 +235,7 @@ export function CardHand({ cards, isMyTurn, hasAP, activeCardPhase, mapInnerRef,
 
   return (
     <>
-      <div className="card-hand">
+      <div className="card-hand" ref={handRef}>
         {cards.map((card) => {
           const isBeingDragged = drag?.cardId === card.id && isDragging;
           const isReturning = returning?.cardId === card.id;
