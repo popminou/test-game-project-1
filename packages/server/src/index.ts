@@ -74,7 +74,9 @@ function createInitialState(): GameState {
     currentPlayerIndex: 0,
     turnNumber: 0,
     deck: [],
+    discardedCards: [],
     activeCards: [],
+    numDrawnThisTurn: 0,
     activeBattle: null,
     turnStep: 'preparation',
     actionPhase: null,
@@ -87,6 +89,7 @@ function advanceTurn(): void {
   if (gameState.currentPlayerIndex === 0) gameState.turnNumber++;
   const next = gameState.players[gameState.currentPlayerIndex];
   next.currentActionPoints = next.maxActionPoints;
+  gameState.numDrawnThisTurn = 0;
   gameState.turnStep = 'preparation';
   gameState.actionPhase = null;
   console.log(
@@ -198,25 +201,38 @@ io.on('connection', (socket) => {
       return;
     }
     if (gameState.turnStep === 'preparation') {
+      const expired = gameState.activeCards.filter(
+        (ac) => ac.card.duration.type === 'turn-step' && ac.card.duration.step === 'preparation',
+      );
+      gameState.discardedCards.push(...expired.map((ac) => ac.card));
       gameState.activeCards = gameState.activeCards.filter(
         (ac) => !(ac.card.duration.type === 'turn-step' && ac.card.duration.step === 'preparation'),
       );
       gameState.turnStep = 'action';
       gameState.actionPhase = 'move';
     } else if (gameState.turnStep === 'action') {
+      const expired = gameState.activeCards.filter(
+        (ac) => ac.card.duration.type === 'turn-step' && ac.card.duration.step === 'action',
+      );
+      gameState.discardedCards.push(...expired.map((ac) => ac.card));
       gameState.activeCards = gameState.activeCards.filter(
         (ac) => !(ac.card.duration.type === 'turn-step' && ac.card.duration.step === 'action'),
       );
       gameState.turnStep = 'upkeep';
       gameState.actionPhase = null;
     } else if (gameState.turnStep === 'upkeep') {
-      gameState.activeCards = gameState.activeCards
-        .map((ac) =>
-          ac.card.duration.type === 'turns' && ac.turnsRemaining !== undefined
-            ? { ...ac, turnsRemaining: ac.turnsRemaining - 1 }
-            : ac,
-        )
-        .filter((ac) => ac.card.duration.type !== 'turns' || (ac.turnsRemaining ?? 0) > 0);
+      const decremented = gameState.activeCards.map((ac) =>
+        ac.card.duration.type === 'turns' && ac.turnsRemaining !== undefined
+          ? { ...ac, turnsRemaining: ac.turnsRemaining - 1 }
+          : ac,
+      );
+      const expired = decremented.filter(
+        (ac) => ac.card.duration.type === 'turns' && (ac.turnsRemaining ?? 0) <= 0,
+      );
+      gameState.discardedCards.push(...expired.map((ac) => ac.card));
+      gameState.activeCards = decremented.filter(
+        (ac) => ac.card.duration.type !== 'turns' || (ac.turnsRemaining ?? 0) > 0,
+      );
       advanceTurn();
     }
     io.emit('game:state', gameState);
@@ -292,7 +308,7 @@ io.on('connection', (socket) => {
     const [card] = current.hand.splice(cardIndex, 1);
     current.currentActionPoints--;
     if (card.duration.type === 'instant') {
-      gameState.deck.push(card);
+      gameState.discardedCards.push(card);
     } else {
       const activeCard: ActiveCard = {
         card,
@@ -323,7 +339,7 @@ io.on('connection', (socket) => {
       return;
     }
     const [card] = player.hand.splice(cardIndex, 1);
-    gameState.deck.push(card);
+    gameState.discardedCards.push(card);
     io.emit('game:state', gameState);
     callback({ success: true });
     console.log(`[card:discard] ${player.name} discarded ${card.name}`);
@@ -334,9 +350,18 @@ io.on('connection', (socket) => {
       callback({ success: false, error: 'Game is not in progress' });
       return;
     }
-    const player = gameState.players.find((p) => p.id === socket.id);
-    if (!player) {
-      callback({ success: false, error: 'Player not found' });
+    const current = gameState.players[gameState.currentPlayerIndex];
+    if (!current || current.id !== socket.id) {
+      callback({ success: false, error: 'It is not your turn' });
+      return;
+    }
+    if (gameState.turnStep !== 'preparation') {
+      callback({ success: false, error: 'Can only draw during the preparation step' });
+      return;
+    }
+    const MAX_DRAWS_PER_TURN = 1;
+    if (gameState.numDrawnThisTurn >= MAX_DRAWS_PER_TURN) {
+      callback({ success: false, error: 'Already drew the maximum number of cards this turn' });
       return;
     }
     if (gameState.deck.length === 0) {
@@ -344,10 +369,11 @@ io.on('connection', (socket) => {
       return;
     }
     const card = gameState.deck.shift()!;
-    player.hand.push(card);
+    current.hand.push(card);
+    gameState.numDrawnThisTurn++;
     io.emit('game:state', gameState);
     callback({ success: true });
-    console.log(`[card:draw] ${player.name} drew ${card.name}`);
+    console.log(`[card:draw] ${current.name} drew ${card.name}`);
   });
 
   socket.on('battle:retreat', ({ territoryId }: BattleRetreatPayload, callback) => {
@@ -371,7 +397,7 @@ io.on('connection', (socket) => {
       (ac) => !(ac.card.duration.type === 'turn-step' && ac.card.duration.step === 'battle'),
     );
     if (gameState.activeBattle) {
-      gameState.deck.push(...gameState.activeBattle.attackerBattleCards, ...gameState.activeBattle.defenderBattleCards);
+      gameState.discardedCards.push(...gameState.activeBattle.attackerBattleCards, ...gameState.activeBattle.defenderBattleCards);
     }
     gameState.activeBattle = null;
     gameState.actionPhase = 'move';
@@ -502,7 +528,7 @@ io.on('connection', (socket) => {
     gameState.activeCards = gameState.activeCards.filter(
       (ac) => !(ac.card.duration.type === 'turn-step' && ac.card.duration.step === 'battle'),
     );
-    gameState.deck.push(...gameState.activeBattle.attackerBattleCards, ...gameState.activeBattle.defenderBattleCards);
+    gameState.discardedCards.push(...gameState.activeBattle.attackerBattleCards, ...gameState.activeBattle.defenderBattleCards);
     gameState.activeBattle = null;
     gameState.actionPhase = 'move';
     io.emit('game:state', gameState);

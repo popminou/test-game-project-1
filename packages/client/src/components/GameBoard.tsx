@@ -4,7 +4,9 @@ import { GameMap } from './GameMap';
 import { PlayerPanel } from './PlayerPanel';
 import { PlayerBar } from './PlayerBar';
 import { CardHand } from './CardHand';
-import { PlayedCards } from './PlayedCards';
+import { DeckPile } from './DeckPile';
+import { DiscardPile } from './DiscardPile';
+import { ActiveCardsPanel } from './ActiveCardsPanel';
 import { BattleModal } from './BattleModal';
 
 export type ActionMode = 'move' | 'battle' | null;
@@ -25,9 +27,10 @@ interface GameBoardProps {
   onBattleEnd: () => void;
   onBattleCardPlay: (cardId: string) => void;
   onBattleCardDone: () => void;
+  onDrawCard: () => void;
 }
 
-export function GameBoard({ gameState, myPlayerId, onEndTurn, onStepAdvance, onLeave, onArmyMove, onCardPlay, onCardDiscard, onBattleStart, onBattleRetreat, onBattleResolve, onBattleRoll, onBattleEnd, onBattleCardPlay, onBattleCardDone }: GameBoardProps) {
+export function GameBoard({ gameState, myPlayerId, onEndTurn, onStepAdvance, onLeave, onArmyMove, onCardPlay, onCardDiscard, onBattleStart, onBattleRetreat, onBattleResolve, onBattleRoll, onBattleEnd, onBattleCardPlay, onBattleCardDone, onDrawCard }: GameBoardProps) {
   const mapInnerRef = useRef<HTMLDivElement>(null);
   const battleOverlayRef = useRef<HTMLDivElement>(null);
   const myBattleZoneRef = useRef<HTMLDivElement>(null);
@@ -44,6 +47,7 @@ export function GameBoard({ gameState, myPlayerId, onEndTurn, onStepAdvance, onL
     : null;
 
   const activeCardPhase: CardPhase = activeBattle?.phase === 'card' ? 'battle' : 'action';
+  const canDraw = isMyTurn && gameState.turnStep === 'preparation' && gameState.numDrawnThisTurn < 1 && gameState.deck.length > 0;
 
   const [actionMode, setActionMode] = useState<ActionMode>(null);
 
@@ -76,6 +80,7 @@ export function GameBoard({ gameState, myPlayerId, onEndTurn, onStepAdvance, onL
             onToggleActionMode={toggleActionMode}
           />
         )}
+        <ActiveCardsPanel activeCards={gameState.activeCards} players={gameState.players} />
         <div className="map-inner" ref={mapInnerRef}>
           <GameMap
             gameState={gameState}
@@ -84,7 +89,8 @@ export function GameBoard({ gameState, myPlayerId, onEndTurn, onStepAdvance, onL
             onArmyMove={onArmyMove}
             onBattleStart={handleBattleStart}
           />
-          <PlayedCards cards={gameState.activeCards} />
+          <DeckPile deckSize={gameState.deck.length} canDraw={canDraw} onDraw={onDrawCard} />
+          <DiscardPile discardedCards={gameState.discardedCards} />
           {activeBattle && (
             <BattleModal
               gameState={gameState}

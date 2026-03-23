@@ -104,7 +104,9 @@ export interface GameState {
   currentPlayerIndex: number;
   turnNumber: number;
   deck: Card[];
+  discardedCards: Card[];
   activeCards: ActiveCard[];
+  numDrawnThisTurn: number;
   activeBattle: ActiveBattle | null;
   turnStep: TurnStep;
   actionPhase: ActionPhase | null;
