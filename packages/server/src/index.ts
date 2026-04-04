@@ -328,9 +328,16 @@ io.on('connection', (socket) => {
       callback({ success: false, error: 'It is not your turn' });
       return;
     }
-    if (current.currentActionPoints <= 0) {
-      callback({ success: false, error: 'No action points remaining' });
-      return;
+    if (gameState.turnStep === 'preparation') {
+      if (gameState.preparationActionTaken) {
+        callback({ success: false, error: 'Already used your preparation action this turn' });
+        return;
+      }
+    } else {
+      if (current.currentActionPoints <= 0) {
+        callback({ success: false, error: 'No action points remaining' });
+        return;
+      }
     }
     const cardIndex = current.hand.findIndex((c) => c.id === cardId);
     if (cardIndex === -1) {
@@ -343,7 +350,11 @@ io.on('connection', (socket) => {
       return;
     }
     const [card] = current.hand.splice(cardIndex, 1);
-    current.currentActionPoints--;
+    if (gameState.turnStep === 'preparation') {
+      gameState.preparationActionTaken = true;
+    } else {
+      current.currentActionPoints--;
+    }
     if (card.duration.type === 'instant') {
       gameState.discardedCards.push(card);
     } else {

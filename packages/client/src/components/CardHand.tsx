@@ -60,7 +60,8 @@ export function CardHand({ cards, isMyTurn, hasAP, activeCardStep, mapInnerRef, 
   const isCardDisabled = (card: Card) => {
     if (!card.steps.includes(activeCardStep)) return true;
     if (activeCardStep === 'battle') return false;
-    return !isMyTurn;
+    if (!isMyTurn) return true;
+    return !hasAP;
   };
 
   const isDragging = drag !== null &&

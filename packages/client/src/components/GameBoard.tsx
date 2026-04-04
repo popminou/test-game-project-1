@@ -62,6 +62,11 @@ export function GameBoard({ gameState, myPlayerId, onEndTurn, onStepAdvance, onL
 
   const activeCardStep = activeBattle?.phase === 'card' ? 'battle' : gameState.turnStep;
   const canDraw = isMyTurn && gameState.turnStep === 'preparation' && !gameState.preparationActionTaken && gameState.deck.length > 0;
+  const hasAP = (myPlayer?.currentActionPoints ?? 0) > 0;
+  // During preparation, card play doesn't cost AP but is blocked once the preparation action is taken
+  const canPlayCard = gameState.turnStep === 'preparation'
+    ? isMyTurn && !gameState.preparationActionTaken
+    : hasAP;
 
   const [actionMode, setActionMode] = useState<ActionMode>(null);
   const [drawAnim, setDrawAnim] = useState<DrawAnimation | null>(null);
@@ -164,7 +169,7 @@ export function GameBoard({ gameState, myPlayerId, onEndTurn, onStepAdvance, onL
           <CardHand
             cards={myPlayer.hand}
             isMyTurn={isMyTurn}
-            hasAP={(myPlayer.currentActionPoints ?? 0) > 0}
+            hasAP={canPlayCard}
             activeCardStep={activeCardStep}
             mapInnerRef={mapInnerRef}
             onPlay={onCardPlay}
