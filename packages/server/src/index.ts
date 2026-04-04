@@ -104,6 +104,15 @@ function advanceTurn(): void {
 let gameState: GameState = createInitialState();
 let armyIdCounter = 0;
 
+function playerControlsTerritory(playerId: string, territoryId: string): boolean {
+  const territory = gameState.territories.find((t) => t.id === territoryId);
+  if (!territory) return false;
+  if (territory.basePlayerId === playerId) return true;
+  const hasOwnArmies = gameState.armies.some((a) => a.playerId === playerId && a.territoryId === territoryId);
+  const hasEnemyArmies = gameState.armies.some((a) => a.playerId !== playerId && a.territoryId === territoryId);
+  return hasOwnArmies && !hasEnemyArmies;
+}
+
 // ---- Socket Handlers ----
 
 io.on('connection', (socket) => {
@@ -318,7 +327,7 @@ io.on('connection', (socket) => {
     console.log(`[army:move] ${socket.id} moved ${armyIds.length} armies from ${fromTerritoryId} to ${toTerritoryId}`);
   });
 
-  socket.on('card:play', ({ cardId }, callback) => {
+  socket.on('card:play', ({ cardId, cardPayload }, callback) => {
     if (gameState.phase !== 'playing') {
       callback({ success: false, error: 'Game is not in progress' });
       return;
@@ -349,6 +358,17 @@ io.on('connection', (socket) => {
       callback({ success: false, error: `Card cannot be played during the ${gameState.turnStep} step` });
       return;
     }
+    // Card-specific payload validation
+    if (cardToPlay.cardId === 'conscription') {
+      if (!cardPayload || cardPayload.cardId !== 'conscription') {
+        callback({ success: false, error: 'Conscription requires a target territory' });
+        return;
+      }
+      if (!playerControlsTerritory(current.id, cardPayload.territoryId)) {
+        callback({ success: false, error: 'You do not control that territory' });
+        return;
+      }
+    }
     const [card] = current.hand.splice(cardIndex, 1);
     if (gameState.turnStep === 'preparation') {
       gameState.preparationActionTaken = true;
@@ -365,6 +385,15 @@ io.on('connection', (socket) => {
         turnsRemaining: card.duration.type === 'turns' ? card.duration.count : undefined,
       };
       gameState.activeCards.push(activeCard);
+    }
+    // Card effects
+    if (card.cardId === 'conscription' && cardPayload?.cardId === 'conscription') {
+      const { territoryId } = cardPayload;
+      gameState.armies.push(
+        { id: `a${++armyIdCounter}`, playerId: current.id, territoryId },
+        { id: `a${++armyIdCounter}`, playerId: current.id, territoryId },
+      );
+      console.log(`[card:play:conscription] ${current.name} recruited 2 armies at ${territoryId}`);
     }
     io.emit('game:state', gameState);
     callback({ success: true });

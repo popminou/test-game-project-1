@@ -140,8 +140,11 @@ export interface BattleRollPayload {
   defenderDice: number[];
 }
 
+export type CardSpecificPayload = { cardId: 'conscription'; territoryId: string };
+
 export interface CardPlayPayload {
   cardId: string;
+  cardPayload?: CardSpecificPayload;
 }
 
 export interface CardDiscardPayload {
