@@ -25,8 +25,35 @@ export const CARD_DEFINITIONS: { cardId: string; steps: GameStep[]; type: CardTy
   { cardId: 'power-armor', steps: ['battle'], type: 'event', name: 'Power Armor', description: "All of your enemy's dice rolls gain -1 (minimum value of 1).", duration: { type: 'turn-step', step: 'battle' } },
   { cardId: 'iron-will', steps: ['battle'], type: 'event', name: 'Iron Will', description: 'Once this battle, re-roll all your dice.', duration: { type: 'turn-step', step: 'battle' } },
   { cardId: 'underground-tunnels', steps: ['battle'], type: 'event', name: 'Underground Tunnels', description: 'Flee the battle without losing any armies.', duration: { type: 'turn-step', step: 'battle' } },
-  // Preparation — Powers
+  // Preparation — Powers (not included in the draw deck)
   { cardId: 'clones', steps: ['preparation'], type: 'power', name: 'Clones', description: 'Increase your army recruitment by one during the Preparation Step.', duration: { type: 'permanent' } },
   { cardId: 'slave-pits', steps: ['preparation'], type: 'power', name: 'Slave Pits', description: 'Increase your credit acquisition by 2 during the Preparation Step.', duration: { type: 'permanent' } },
   { cardId: 'recycling-nanobots', steps: ['preparation'], type: 'power', name: 'Recycling Nanobots', description: 'Whenever you draw from the draw pile, instead draw 2; keep one, and put the other one at the bottom of the pile.', duration: { type: 'permanent' } },
+];
+
+// Draw deck composition: [cardId, count]
+export const DRAW_DECK: [string, number][] = [
+  // Preparation
+  ['conscription', 2],
+  ['forced-labor', 2],
+  ['spy-mission', 2],
+  ['diplomatic-agreement', 2],
+  ['logistics', 2],
+  ['supply-transports', 2],
+  // Action
+  ['forced-march', 2],
+  ['air-lift', 2],
+  ['planted-intelligence', 2],
+  ['ion-storm', 2],
+  ['bunker', 2],
+  // Battle
+  ['null-field-generator', 2],
+  ['ambush', 2],
+  ['maneuver', 2],
+  ['snipers', 2],
+  ['trenches', 2],
+  ['plasma-weapons', 2],
+  ['power-armor', 2],
+  ['iron-will', 2],
+  ['underground-tunnels', 2],
 ];

@@ -23,7 +23,7 @@ import {
   type BattleRollPayload,
   type BattleCardPlayPayload,
 } from '@test-project/iso';
-import { CARD_DEFINITIONS } from './cards';
+import { CARD_DEFINITIONS, DRAW_DECK } from './cards';
 
 const app = express();
 const httpServer = createServer(app);
@@ -48,9 +48,11 @@ app.get(API_ROUTES.health, (_req, res) => {
 function createDeck(): Card[] {
   const deck: Card[] = [];
   let counter = 0;
-  // 3 copies of each definition = 27 total
-  for (let i = 0; i < 3; i++) {
-    for (const def of CARD_DEFINITIONS) {
+  const defMap = new Map(CARD_DEFINITIONS.map((def) => [def.cardId, def]));
+  for (const [cardId, count] of DRAW_DECK) {
+    const def = defMap.get(cardId);
+    if (!def) throw new Error(`Unknown cardId in DRAW_DECK: ${cardId}`);
+    for (let i = 0; i < count; i++) {
       deck.push({ id: `card-${++counter}`, ...def });
     }
   }
