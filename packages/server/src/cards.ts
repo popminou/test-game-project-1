@@ -11,9 +11,12 @@ export const CARD_DEFINITIONS: { cardId: string; steps: GameStep[]; type: CardTy
   // Action — Events
   { cardId: 'forced-march', steps: ['action'], type: 'event', name: 'Forced March', description: 'Move all your armies on one territory to an adjacent territory at no action point cost. Lose one army that was moved.', duration: { type: 'instant' } },
   { cardId: 'air-lift', steps: ['action'], type: 'event', name: 'Air Lift', description: 'Move up to 3 armies up to 2 territories away.', duration: { type: 'instant' } },
+  { cardId: 'planted-intelligence', steps: ['action'], type: 'event', name: 'Planted Intelligence', description: 'Move 2 enemy armies from one territory to another territory.', duration: { type: 'instant' } },
+  { cardId: 'ion-storm', steps: ['action'], type: 'event', name: 'Ion Storm', description: 'Choose a territory. No armies can move to or from the territory.', duration: { type: 'turns', count: 1 } },
   // Action — Buildings
   { cardId: 'bunker', steps: ['action'], type: 'building', name: 'Bunker', description: 'Build a Bunker on a territory you control. Remove one army from that territory.', duration: { type: 'instant' } },
   // Battle — Events
+  { cardId: 'null-field-generator', steps: ['battle'], type: 'event', name: 'Null Field Generator', description: "Cancel or remove the opponent's battle card.", duration: { type: 'instant' } },
   { cardId: 'ambush', steps: ['battle'], type: 'event', name: 'Ambush', description: 'On the first round of battle, the enemy gets one less dice (minimum of 1 dice).', duration: { type: 'turn-step', step: 'battle' } },
   { cardId: 'maneuver', steps: ['battle'], type: 'event', name: 'Maneuver', description: 'Equal dice are considered as a success for you.', duration: { type: 'turn-step', step: 'battle' } },
   { cardId: 'snipers', steps: ['battle'], type: 'event', name: 'Snipers!', description: 'The enemy loses one army.', duration: { type: 'instant' } },
