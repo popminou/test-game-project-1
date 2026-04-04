@@ -938,7 +938,20 @@ body {
   pointer-events: all;
 }
 
-.map-modal {
+/* Card target confirm modal — overlays the entire game board */
+.card-target-modal-overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 200;
+  pointer-events: all;
+}
+
+.map-modal,
+.card-target-modal {
   background: #131c27;
   border: 1px solid #c9a227;
   border-radius: 6px;
@@ -950,7 +963,8 @@ body {
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.6);
 }
 
-.map-modal p {
+.map-modal p,
+.card-target-modal p {
   margin: 0 0 1.2rem;
   font-size: 1rem;
   line-height: 1.5;

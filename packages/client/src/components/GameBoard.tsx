@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import type { GameState } from '@test-project/iso';
+import type { GameState, Card, CardSpecificPayload } from '@test-project/iso';
+import { TERRITORY_DEFS, playerControlsTerritory, enemyControlsTerritory } from '@test-project/iso';
 import { GameMap } from './GameMap';
 import { PlayerPanel } from './PlayerPanel';
 import { PlayerBar } from './PlayerBar';
@@ -28,7 +29,7 @@ interface GameBoardProps {
   onStepAdvance: () => void;
   onLeave: () => void;
   onArmyMove: (armyIds: string[], toTerritoryId: string) => void;
-  onCardPlay: (cardId: string) => void;
+  onCardPlay: (cardId: string, cardPayload?: CardSpecificPayload) => void;
   onCardDiscard: (cardId: string) => void;
   onBattleStart: (territoryId: string, defenderPlayerId: string) => void;
   onBattleRetreat: (territoryId: string) => void;
@@ -70,6 +71,9 @@ export function GameBoard({ gameState, myPlayerId, onEndTurn, onStepAdvance, onL
 
   const [actionMode, setActionMode] = useState<ActionMode>(null);
   const [drawAnim, setDrawAnim] = useState<DrawAnimation | null>(null);
+  const [draggingCard, setDraggingCard] = useState<Card | null>(null);
+  const [cardDragHoveredTerritoryId, setCardDragHoveredTerritoryId] = useState<string | null>(null);
+  const [pendingCardPlay, setPendingCardPlay] = useState<{ cardId: string; card: Card; territoryId: string } | null>(null);
 
   // Reset action mode when leaving the move phase
   useEffect(() => {
@@ -102,6 +106,39 @@ export function GameBoard({ gameState, myPlayerId, onEndTurn, onStepAdvance, onL
   const handleBattleStart = (territoryId: string, defenderPlayerId: string) => {
     setActionMode(null);
     onBattleStart(territoryId, defenderPlayerId);
+  };
+
+  const isTerritoryValidForCard = (card: Card, territoryId: string): boolean => {
+    if (card.target === 'territory') return true;
+    if (card.target === 'controlled-territory') return playerControlsTerritory(gameState, myPlayerId, territoryId);
+    if (card.target === 'enemy-territory') return enemyControlsTerritory(gameState, myPlayerId, territoryId);
+    return false;
+  };
+
+  // Cards without a target play immediately when dropped on the map (territory not taken into account).
+  // Cards with a target require the player to drop on a valid territory, then confirm.
+  const handleCardPlayIntercepted = (cardId: string) => {
+    const card = myPlayer?.hand.find((c) => c.id === cardId);
+    if (!card) return;
+    if (!card.target) {
+      onCardPlay(cardId);
+      return;
+    }
+    if (cardDragHoveredTerritoryId && isTerritoryValidForCard(card, cardDragHoveredTerritoryId)) {
+      setPendingCardPlay({ cardId, card, territoryId: cardDragHoveredTerritoryId });
+    }
+    // Dropped on invalid territory: do nothing, card stays in hand
+  };
+
+  const handleConfirmCardPlay = () => {
+    if (!pendingCardPlay) return;
+    const { cardId, card, territoryId } = pendingCardPlay;
+    let cardPayload: CardSpecificPayload | undefined;
+    if (card.cardId === 'conscription') {
+      cardPayload = { cardId: 'conscription', territoryId };
+    }
+    onCardPlay(cardId, cardPayload);
+    setPendingCardPlay(null);
   };
 
   const handleDrawCard = () => {
@@ -144,6 +181,8 @@ export function GameBoard({ gameState, myPlayerId, onEndTurn, onStepAdvance, onL
             actionMode={actionMode}
             onArmyMove={onArmyMove}
             onBattleStart={handleBattleStart}
+            draggingCard={draggingCard}
+            onTerritoryHoverChange={setCardDragHoveredTerritoryId}
           />
           <DeckPile deckSize={gameState.deck.length} canDraw={canDraw} onDraw={handleDrawCard} cardBackRef={deckCardBackRef} />
           <DiscardPile discardedCards={gameState.discardedCards} />
@@ -172,8 +211,9 @@ export function GameBoard({ gameState, myPlayerId, onEndTurn, onStepAdvance, onL
             hasAP={canPlayCard}
             activeCardStep={activeCardStep}
             mapInnerRef={mapInnerRef}
-            onPlay={onCardPlay}
+            onPlay={handleCardPlayIntercepted}
             onDiscard={onCardDiscard}
+            onCardDragChange={setDraggingCard}
             battleDropRef={activeBattle?.phase === 'card' ? battleOverlayRef : undefined}
             onBattleCardPlay={activeBattle?.phase === 'card' ? onBattleCardPlay : undefined}
             battleCardZoneRef={activeBattle?.phase === 'card' ? myBattleZoneRef : undefined}
@@ -188,6 +228,20 @@ export function GameBoard({ gameState, myPlayerId, onEndTurn, onStepAdvance, onL
         onStepAdvance={onStepAdvance}
         onLeave={onLeave}
       />
+      {pendingCardPlay && (
+        <div className="card-target-modal-overlay">
+          <div className="card-target-modal">
+            <p>
+              Play <strong>{pendingCardPlay.card.name}</strong> on{' '}
+              <strong>{TERRITORY_DEFS.find((t) => t.id === pendingCardPlay.territoryId)?.name ?? pendingCardPlay.territoryId}</strong>?
+            </p>
+            <div className="map-modal-buttons">
+              <button className="btn-confirm" onClick={handleConfirmCardPlay}>Confirm</button>
+              <button className="btn-cancel" onClick={() => setPendingCardPlay(null)}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
       {drawAnim && (
         <div
           className="card-back"

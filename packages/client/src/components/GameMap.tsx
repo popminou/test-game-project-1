@@ -5,8 +5,10 @@ import {
   MAP_WIDTH,
   MAP_HEIGHT,
   areTerritoriesConnected,
+  playerControlsTerritory,
+  enemyControlsTerritory,
 } from '@test-project/iso';
-import type { GameState, Army } from '@test-project/iso';
+import type { GameState, Army, Card } from '@test-project/iso';
 import type { ActionMode } from './GameBoard';
 
 interface GameMapProps {
@@ -15,6 +17,8 @@ interface GameMapProps {
   actionMode: ActionMode;
   onArmyMove: (armyIds: string[], toTerritoryId: string) => void;
   onBattleStart: (territoryId: string, defenderPlayerId: string) => void;
+  draggingCard?: Card | null;
+  onTerritoryHoverChange?: (id: string | null) => void;
 }
 
 interface Tooltip {
@@ -125,7 +129,7 @@ function getArmyPositions(
   return positions;
 }
 
-export function GameMap({ gameState, myPlayerId, actionMode, onArmyMove, onBattleStart }: GameMapProps) {
+export function GameMap({ gameState, myPlayerId, actionMode, onArmyMove, onBattleStart, draggingCard, onTerritoryHoverChange }: GameMapProps) {
   const moveMode = actionMode === 'move';
   const battleMode = actionMode === 'battle';
   const [tooltip, setTooltip] = useState<Tooltip | null>(null);
@@ -161,7 +165,25 @@ export function GameMap({ gameState, myPlayerId, actionMode, onArmyMove, onBattl
     return { canBattle: enemyPlayerIds.length > 0, enemyPlayerIds };
   };
 
+  const getCardTargetHighlight = (territoryId: string): string | null => {
+    if (!draggingCard?.target) return null;
+    const isHovered = hoverTerritoryId === territoryId;
+    if (draggingCard.target === 'territory') return isHovered ? '#f0c030' : '#d4a017';
+    if (draggingCard.target === 'controlled-territory') {
+      if (!playerControlsTerritory(gameState, myPlayerId, territoryId)) return null;
+      return isHovered ? '#4cd97b' : '#27ae60';
+    }
+    if (draggingCard.target === 'enemy-territory') {
+      if (!enemyControlsTerritory(gameState, myPlayerId, territoryId)) return null;
+      return isHovered ? '#e05050' : '#c0392b';
+    }
+    return null;
+  };
+
   const getTerritoryFill = (territoryId: string): string => {
+    const cardHighlight = getCardTargetHighlight(territoryId);
+    if (cardHighlight) return cardHighlight;
+
     if (battleMode) {
       const { canBattle } = getBattleInfo(territoryId);
       return canBattle ? '#e07020' : '#555';
@@ -363,12 +385,16 @@ export function GameMap({ gameState, myPlayerId, actionMode, onArmyMove, onBattl
                 style={battleMode ? { cursor: getBattleInfo(territory.id).canBattle ? 'pointer' : 'not-allowed' } : undefined}
                 onClick={() => handleTerritoryClick(territory.id)}
                 onMouseEnter={() => {
-                  if (isDragging || battleMode) setHoverTerritoryId(territory.id);
+                  if (isDragging || battleMode || draggingCard?.target != null) {
+                    setHoverTerritoryId(territory.id);
+                    if (draggingCard?.target != null) onTerritoryHoverChange?.(territory.id);
+                  }
                 }}
                 onMouseLeave={() => {
-                  if (isDragging || battleMode) setHoverTerritoryId((prev) =>
-                    prev === territory.id ? null : prev,
-                  );
+                  if (isDragging || battleMode || draggingCard?.target != null) {
+                    setHoverTerritoryId((prev) => prev === territory.id ? null : prev);
+                    if (draggingCard?.target != null) onTerritoryHoverChange?.(null);
+                  }
                 }}
               />
               <text

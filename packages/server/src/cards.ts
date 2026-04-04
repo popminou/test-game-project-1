@@ -1,8 +1,8 @@
-import type { CardDuration, CardType, GameStep } from '@test-project/iso';
+import type { CardDuration, CardTarget, CardType, GameStep } from '@test-project/iso';
 
-export const CARD_DEFINITIONS: { cardId: string; steps: GameStep[]; type: CardType; name: string; description: string; duration: CardDuration }[] = [
+export const CARD_DEFINITIONS: { cardId: string; steps: GameStep[]; type: CardType; name: string; description: string; duration: CardDuration; target?: CardTarget }[] = [
   // Preparation — Events
-  { cardId: 'conscription', steps: ['preparation'], type: 'event', name: 'Conscription', description: 'Recruit two armies and place them on any ONE territory you control.', duration: { type: 'instant' } },
+{ cardId: 'conscription', steps: ['preparation'], type: 'event', name: 'Conscription', description: 'Recruit two armies and place them on any ONE territory you control.', duration: { type: 'instant' }, target: 'controlled-territory' },
   { cardId: 'forced-labor', steps: ['preparation'], type: 'event', name: 'Forced Labor', description: 'Play one Building card from your hand, paying the normal cost.', duration: { type: 'instant' } },
   { cardId: 'spy-mission', steps: ['preparation'], type: 'event', name: 'Spy Mission', description: 'Draw 2 cards.', duration: { type: 'instant' } },
   { cardId: 'diplomatic-agreement', steps: ['preparation'], type: 'event', name: 'Diplomatic Agreement', description: 'Negotiate a temporary truce — an enemy player and you cannot attack each other.', duration: { type: 'until-next-step', step: 'preparation' } },
@@ -34,26 +34,26 @@ export const CARD_DEFINITIONS: { cardId: string; steps: GameStep[]; type: CardTy
 // Draw deck composition: [cardId, count]
 export const DRAW_DECK: [string, number][] = [
   // Preparation
-  ['conscription', 2],
-  ['forced-labor', 2],
-  ['spy-mission', 2],
-  ['diplomatic-agreement', 2],
-  ['logistics', 2],
-  ['supply-transports', 2],
-  // Action
-  ['forced-march', 2],
-  ['air-lift', 2],
-  ['planted-intelligence', 2],
-  ['ion-storm', 2],
-  ['bunker', 2],
-  // Battle
-  ['null-field-generator', 2],
-  ['ambush', 2],
-  ['maneuver', 2],
-  ['snipers', 2],
-  ['trenches', 2],
-  ['plasma-weapons', 2],
-  ['power-armor', 2],
-  ['iron-will', 2],
-  ['underground-tunnels', 2],
+  ['conscription', 20],
+  // ['forced-labor', 2],
+  // ['spy-mission', 2],
+  // ['diplomatic-agreement', 2],
+  // ['logistics', 2],
+  // ['supply-transports', 2],
+  // // Action
+  // ['forced-march', 2],
+  // ['air-lift', 2],
+  // ['planted-intelligence', 2],
+  // ['ion-storm', 2],
+  // ['bunker', 2],
+  // // Battle
+  // ['null-field-generator', 2],
+  // ['ambush', 2],
+  // ['maneuver', 2],
+  // ['snipers', 2],
+  // ['trenches', 2],
+  // ['plasma-weapons', 2],
+  // ['power-armor', 2],
+  // ['iron-will', 2],
+  // ['underground-tunnels', 2],
 ];

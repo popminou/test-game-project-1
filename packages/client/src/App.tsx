@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { io } from 'socket.io-client';
 import type { Socket } from 'socket.io-client';
-import type { GameState, ServerToClientEvents, ClientToServerEvents } from '@test-project/iso';
+import type { GameState, ServerToClientEvents, ClientToServerEvents, CardSpecificPayload } from '@test-project/iso';
 import { Lobby } from './components/Lobby';
 import { GameBoard } from './components/GameBoard';
 import './game.css';
@@ -62,8 +62,8 @@ export function App() {
     setMyPlayerId(null);
     socket?.connect();
   };
-  const handleCardPlay = (cardId: string) => {
-    socket?.emit('card:play', { cardId }, (res) => {
+  const handleCardPlay = (cardId: string, cardPayload?: CardSpecificPayload) => {
+    socket?.emit('card:play', { cardId, cardPayload }, (res) => {
       if (!res.success) {
         setError(res.error ?? 'Failed to play card');
         setTimeout(() => setError(null), 4000);

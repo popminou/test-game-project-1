@@ -9,6 +9,7 @@ interface CardHandProps {
   mapInnerRef: React.RefObject<HTMLDivElement | null>;
   onPlay: (cardId: string) => void;
   onDiscard: (cardId: string) => void;
+  onCardDragChange?: (card: Card | null) => void;
   battleDropRef?: React.RefObject<HTMLDivElement | null>;
   onBattleCardPlay?: (cardId: string) => void;
   battleCardZoneRef?: React.RefObject<HTMLDivElement | null>;
@@ -49,7 +50,7 @@ interface FlyingState {
 
 const DRAG_THRESHOLD = 5;
 
-export function CardHand({ cards, isMyTurn, hasAP, activeCardStep, mapInnerRef, onPlay, onDiscard, battleDropRef, onBattleCardPlay, battleCardZoneRef, handRef }: CardHandProps) {
+export function CardHand({ cards, isMyTurn, hasAP, activeCardStep, mapInnerRef, onPlay, onDiscard, onCardDragChange, battleDropRef, onBattleCardPlay, battleCardZoneRef, handRef }: CardHandProps) {
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
   const [drag, setDrag] = useState<DragState | null>(null);
   const [returning, setReturning] = useState<ReturnState | null>(null);
@@ -97,6 +98,12 @@ export function CardHand({ cards, isMyTurn, hasAP, activeCardStep, mapInnerRef, 
     const timer = setTimeout(() => setReturning(null), 250);
     return () => clearTimeout(timer);
   }, [returning?.active]);
+
+  // Notify parent when drag starts/ends so it can highlight valid territories
+  useEffect(() => {
+    const card = isDragging && drag ? cards.find((c) => c.id === drag.cardId) ?? null : null;
+    onCardDragChange?.(card);
+  }, [isDragging, drag?.cardId]);
 
   // Kick off flying transition on next frame
   useEffect(() => {

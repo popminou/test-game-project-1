@@ -17,6 +17,7 @@ import {
   TERRITORY_DEFS,
   generateTerritoryConnections,
   areTerritoriesConnected,
+  playerControlsTerritory,
   type BattleStartPayload,
   type BattleRetreatPayload,
   type BattleResolvePayload,
@@ -104,15 +105,6 @@ function advanceTurn(): void {
 let gameState: GameState = createInitialState();
 let armyIdCounter = 0;
 
-function playerControlsTerritory(playerId: string, territoryId: string): boolean {
-  const territory = gameState.territories.find((t) => t.id === territoryId);
-  if (!territory) return false;
-  if (territory.basePlayerId === playerId) return true;
-  const hasOwnArmies = gameState.armies.some((a) => a.playerId === playerId && a.territoryId === territoryId);
-  const hasEnemyArmies = gameState.armies.some((a) => a.playerId !== playerId && a.territoryId === territoryId);
-  return hasOwnArmies && !hasEnemyArmies;
-}
-
 // ---- Socket Handlers ----
 
 io.on('connection', (socket) => {
@@ -170,9 +162,12 @@ io.on('connection', (socket) => {
     gameState.deck = createDeck();
     console.log('[connections]', JSON.stringify(gameState.territoryConnections, null, 2));
 
-    // Deal 5 cards to each player
+    // Draw 5 cards per player from the top of the deck
     for (const player of gameState.players) {
-      player.hand = gameState.deck.splice(0, 5);
+      for (let i = 0; i < 5; i++) {
+        const card = gameState.deck.shift();
+        if (card) player.hand.push(card);
+      }
     }
 
     // Assign player bases.
@@ -364,7 +359,7 @@ io.on('connection', (socket) => {
         callback({ success: false, error: 'Conscription requires a target territory' });
         return;
       }
-      if (!playerControlsTerritory(current.id, cardPayload.territoryId)) {
+      if (!playerControlsTerritory(gameState, current.id, cardPayload.territoryId)) {
         callback({ success: false, error: 'You do not control that territory' });
         return;
       }

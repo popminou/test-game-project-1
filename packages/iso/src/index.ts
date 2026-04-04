@@ -29,6 +29,8 @@ export type CardDuration =
   | { type: 'turns'; count: number }
   | { type: 'permanent' };
 
+export type CardTarget = 'territory' | 'controlled-territory' | 'enemy-territory';
+
 export interface Card {
   id: string;
   cardId: string;
@@ -37,6 +39,7 @@ export interface Card {
   name: string;
   description: string;
   duration: CardDuration;
+  target?: CardTarget;
 }
 
 export interface ActiveCard {
@@ -287,6 +290,23 @@ export function generateTerritoryConnections(): TerritoryConnection[] {
   }
 
   return connections;
+}
+
+/** Returns true if `playerId` controls `territoryId`: either it's their base, or they have armies there with no enemies. */
+export function playerControlsTerritory(gameState: GameState, playerId: string, territoryId: string): boolean {
+  const territory = gameState.territories.find((t) => t.id === territoryId);
+  if (!territory) return false;
+  if (territory.basePlayerId === playerId) return true;
+  const hasOwnArmies = gameState.armies.some((a) => a.playerId === playerId && a.territoryId === territoryId);
+  const hasEnemyArmies = gameState.armies.some((a) => a.playerId !== playerId && a.territoryId === territoryId);
+  return hasOwnArmies && !hasEnemyArmies;
+}
+
+/** Returns true if an enemy of `playerId` controls `territoryId`: they have armies there and `playerId` has none. */
+export function enemyControlsTerritory(gameState: GameState, playerId: string, territoryId: string): boolean {
+  const hasEnemyArmies = gameState.armies.some((a) => a.playerId !== playerId && a.territoryId === territoryId);
+  const hasOwnArmies = gameState.armies.some((a) => a.playerId === playerId && a.territoryId === territoryId);
+  return hasEnemyArmies && !hasOwnArmies;
 }
 
 export function areTerritoriesConnected(
