@@ -75,6 +75,7 @@ export type ActionPhase = 'move' | 'battle';
 export interface TerritoryState {
   id: string;
   ownerId: string | null;
+  basePlayerId: string | null;
 }
 
 export interface Army {

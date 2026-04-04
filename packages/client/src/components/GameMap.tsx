@@ -28,6 +28,14 @@ type Modal =
   | { type: 'info'; message: string };
 
 const UNOWNED_FILL = '#2b4030';
+const BASE_RADIUS = 12;
+
+function pentagonPoints(cx: number, cy: number, r: number): string {
+  return Array.from({ length: 5 }, (_, i) => {
+    const angle = (i * 2 * Math.PI) / 5 - Math.PI / 2;
+    return `${cx + r * Math.cos(angle)},${cy + r * Math.sin(angle)}`;
+  }).join(' ');
+}
 const ARMY_SIZE = 15;
 const ARMY_GAP = 2;
 const ARMY_STEP = ARMY_SIZE + ARMY_GAP;
@@ -372,6 +380,22 @@ export function GameMap({ gameState, myPlayerId, actionMode, onArmyMove, onBattl
               >
                 {territory.name}
               </text>
+              {(() => {
+                const state = gameState.territories.find((t) => t.id === territory.id);
+                if (!state?.basePlayerId) return null;
+                const player = gameState.players.find((p) => p.id === state.basePlayerId);
+                if (!player) return null;
+                const [cx, cy] = territory.labelPos;
+                return (
+                  <polygon
+                    points={pentagonPoints(cx, cy - 20, BASE_RADIUS)}
+                    fill={PLAYER_COLOR_VALUES[player.color]}
+                    stroke="white"
+                    strokeWidth={1.5}
+                    style={{ pointerEvents: 'none' }}
+                  />
+                );
+              })()}
             </g>
           );
         })}

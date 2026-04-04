@@ -70,7 +70,7 @@ function createInitialState(): GameState {
   return {
     phase: 'lobby',
     players: [],
-    territories: TERRITORY_DEFS.map((t): TerritoryState => ({ id: t.id, ownerId: null })),
+    territories: TERRITORY_DEFS.map((t): TerritoryState => ({ id: t.id, ownerId: null, basePlayerId: null })),
     territoryConnections: [],
     armies: [],
     currentPlayerIndex: 0,
@@ -162,16 +162,31 @@ io.on('connection', (socket) => {
       player.hand = gameState.deck.splice(0, 5);
     }
 
-    // Randomly place 0–3 armies per territory per player
-    let armyCounter = 0;
-    for (const territory of TERRITORY_DEFS) {
-      for (const player of gameState.players) {
-        const count = Math.floor(Math.random() * 4);
-        for (let i = 0; i < count; i++) {
-          gameState.armies.push({ id: `a${++armyCounter}`, playerId: player.id, territoryId: territory.id });
-        }
-      }
+    // Assign player bases: t1+t12 or t3+t10 for 2 players; both pairs for 3–4 players
+    const BASE_PAIRS: [string, string][] = [['t1', 't12'], ['t3', 't10']];
+    const numPlayers = gameState.players.length;
+    let baseTerritoryIds: string[];
+    if (numPlayers <= 2) {
+      const pair = BASE_PAIRS[Math.floor(Math.random() * 2)];
+      baseTerritoryIds = [...pair];
+    } else {
+      baseTerritoryIds = [...BASE_PAIRS[0], ...BASE_PAIRS[1]];
     }
+    // Shuffle and assign one base territory per player
+    for (let i = baseTerritoryIds.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [baseTerritoryIds[i], baseTerritoryIds[j]] = [baseTerritoryIds[j], baseTerritoryIds[i]];
+    }
+    let armyCounter = 0;
+    gameState.players.forEach((player, i) => {
+      const territoryId = baseTerritoryIds[i];
+      const territory = gameState.territories.find((t) => t.id === territoryId);
+      if (territory) territory.basePlayerId = player.id;
+      // Place 3 starting armies at the base
+      for (let k = 0; k < 3; k++) {
+        gameState.armies.push({ id: `a${++armyCounter}`, playerId: player.id, territoryId });
+      }
+    });
 
     io.emit('game:state', gameState);
     console.log(`[start] Game started with ${gameState.players.length} players`);
