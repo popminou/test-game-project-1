@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import type { CardPhase, GameState } from '@test-project/iso';
+import type { GameState } from '@test-project/iso';
 import { GameMap } from './GameMap';
 import { PlayerPanel } from './PlayerPanel';
 import { PlayerBar } from './PlayerBar';
@@ -58,7 +58,7 @@ export function GameBoard({ gameState, myPlayerId, onEndTurn, onStepAdvance, onL
     ? gameState.activeBattle
     : null;
 
-  const activeCardPhase: CardPhase = activeBattle?.phase === 'card' ? 'battle' : gameState.turnStep;
+  const activeCardStep = activeBattle?.phase === 'card' ? 'battle' : gameState.turnStep;
   const canDraw = isMyTurn && gameState.turnStep === 'preparation' && gameState.numDrawnThisTurn < 1 && gameState.deck.length > 0;
 
   const [actionMode, setActionMode] = useState<ActionMode>(null);
@@ -159,7 +159,7 @@ export function GameBoard({ gameState, myPlayerId, onEndTurn, onStepAdvance, onL
             cards={myPlayer.hand}
             isMyTurn={isMyTurn}
             hasAP={(myPlayer.currentActionPoints ?? 0) > 0}
-            activeCardPhase={activeCardPhase}
+            activeCardStep={activeCardStep}
             mapInnerRef={mapInnerRef}
             onPlay={onCardPlay}
             onDiscard={onCardDiscard}

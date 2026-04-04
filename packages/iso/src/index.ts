@@ -15,12 +15,12 @@ export const API_ROUTES = {
 
 // ---- Game Types ----
 
-export type CardPhase = 'preparation' | 'action' | 'battle' | 'upkeep';
+export type GameStep = 'preparation' | 'action' | 'battle' | 'upkeep';
 
 export type CardType = 'event' | 'building' | 'power';
 
 /** Which step/phase a 'turn-step' card expires at. Extends TurnStep with 'battle' (the battle sub-phase within the action step). */
-export type DurationStep = 'preparation' | 'action' | 'upkeep' | 'battle';
+export type DurationStep = GameStep;
 
 export type CardDuration =
   | { type: 'instant' }
@@ -30,7 +30,7 @@ export type CardDuration =
 
 export interface Card {
   id: string;
-  phases: CardPhase[];
+  steps: GameStep[];
   type: CardType;
   name: string;
   description: string;

@@ -1,11 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
-import type { Card, CardPhase } from '@test-project/iso';
+import type { Card, GameStep } from '@test-project/iso';
 
 interface CardHandProps {
   cards: Card[];
   isMyTurn: boolean;
   hasAP: boolean;
-  activeCardPhase: CardPhase;
+  activeCardStep: GameStep;
   mapInnerRef: React.RefObject<HTMLDivElement | null>;
   onPlay: (cardId: string) => void;
   onDiscard: (cardId: string) => void;
@@ -49,7 +49,7 @@ interface FlyingState {
 
 const DRAG_THRESHOLD = 5;
 
-export function CardHand({ cards, isMyTurn, hasAP, activeCardPhase, mapInnerRef, onPlay, onDiscard, battleDropRef, onBattleCardPlay, battleCardZoneRef, handRef }: CardHandProps) {
+export function CardHand({ cards, isMyTurn, hasAP, activeCardStep, mapInnerRef, onPlay, onDiscard, battleDropRef, onBattleCardPlay, battleCardZoneRef, handRef }: CardHandProps) {
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
   const [drag, setDrag] = useState<DragState | null>(null);
   const [returning, setReturning] = useState<ReturnState | null>(null);
@@ -58,8 +58,8 @@ export function CardHand({ cards, isMyTurn, hasAP, activeCardPhase, mapInnerRef,
 
   // During battle card phase both players can act, not just the current turn player
   const isCardDisabled = (card: Card) => {
-    if (!card.phases.includes(activeCardPhase)) return true;
-    if (activeCardPhase === 'battle') return false;
+    if (!card.steps.includes(activeCardStep)) return true;
+    if (activeCardStep === 'battle') return false;
     return !isMyTurn;
   };
 
@@ -205,7 +205,7 @@ export function CardHand({ cards, isMyTurn, hasAP, activeCardPhase, mapInnerRef,
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [drag, isMyTurn, hasAP, activeCardPhase, cards, mapInnerRef, onPlay, battleDropRef, onBattleCardPlay, battleCardZoneRef]);
+  }, [drag, isMyTurn, hasAP, activeCardStep, cards, mapInnerRef, onPlay, battleDropRef, onBattleCardPlay, battleCardZoneRef]);
 
   const handleMouseDown = (e: React.MouseEvent, cardId: string) => {
     const card = cards.find((c) => c.id === cardId);

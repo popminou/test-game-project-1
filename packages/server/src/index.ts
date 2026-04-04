@@ -306,7 +306,7 @@ io.on('connection', (socket) => {
       return;
     }
     const cardToPlay = current.hand[cardIndex];
-    if (!cardToPlay.phases.includes(gameState.turnStep)) {
+    if (!cardToPlay.steps.includes(gameState.turnStep)) {
       callback({ success: false, error: `Card cannot be played during the ${gameState.turnStep} step` });
       return;
     }
