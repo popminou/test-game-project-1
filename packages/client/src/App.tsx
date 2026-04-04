@@ -142,6 +142,22 @@ export function App() {
       }
     });
   };
+  const handleRecruit = () => {
+    socket?.emit('preparation:recruit', (res) => {
+      if (!res.success) {
+        setError(res.error ?? 'Failed to recruit');
+        setTimeout(() => setError(null), 4000);
+      }
+    });
+  };
+  const handleResupply = () => {
+    socket?.emit('preparation:resupply', (res) => {
+      if (!res.success) {
+        setError(res.error ?? 'Failed to re-supply');
+        setTimeout(() => setError(null), 4000);
+      }
+    });
+  };
 
   if (!gameState) {
     return <div className="loading">Connecting to server…</div>;
@@ -163,6 +179,6 @@ export function App() {
 
   // myPlayerId is non-null here because hasJoined requires it
   return (
-    <GameBoard gameState={gameState} myPlayerId={myPlayerId!} onEndTurn={handleEndTurn} onStepAdvance={handleStepAdvance} onLeave={handleLeave} onArmyMove={handleArmyMove} onCardPlay={handleCardPlay} onCardDiscard={handleCardDiscard} onBattleStart={handleBattleStart} onBattleRetreat={handleBattleRetreat} onBattleResolve={handleBattleResolve} onBattleRoll={handleBattleRoll} onBattleEnd={handleBattleEnd} onBattleCardPlay={handleBattleCardPlay} onBattleCardDone={handleBattleCardDone} onDrawCard={handleCardDraw} />
+    <GameBoard gameState={gameState} myPlayerId={myPlayerId!} onEndTurn={handleEndTurn} onStepAdvance={handleStepAdvance} onLeave={handleLeave} onArmyMove={handleArmyMove} onCardPlay={handleCardPlay} onCardDiscard={handleCardDiscard} onBattleStart={handleBattleStart} onBattleRetreat={handleBattleRetreat} onBattleResolve={handleBattleResolve} onBattleRoll={handleBattleRoll} onBattleEnd={handleBattleEnd} onBattleCardPlay={handleBattleCardPlay} onBattleCardDone={handleBattleCardDone} onDrawCard={handleCardDraw} onRecruit={handleRecruit} onResupply={handleResupply} />
   );
 }

@@ -82,6 +82,7 @@ function createInitialState(): GameState {
     activeBattle: null,
     turnStep: 'preparation',
     actionPhase: null,
+    preparationActionTaken: false,
   };
 }
 
@@ -92,6 +93,7 @@ function advanceTurn(): void {
   const next = gameState.players[gameState.currentPlayerIndex];
   next.currentActionPoints = next.maxActionPoints;
   gameState.numDrawnThisTurn = 0;
+  gameState.preparationActionTaken = false;
   gameState.turnStep = 'preparation';
   gameState.actionPhase = null;
   console.log(
@@ -100,6 +102,7 @@ function advanceTurn(): void {
 }
 
 let gameState: GameState = createInitialState();
+let armyIdCounter = 0;
 
 // ---- Socket Handlers ----
 
@@ -131,6 +134,7 @@ io.on('connection', (socket) => {
       victoryPoints: 0,
       maxActionPoints: 3,
       currentActionPoints: 3,
+      credits: 0,
       hand: [],
     };
     gameState.players.push(player);
@@ -162,30 +166,41 @@ io.on('connection', (socket) => {
       player.hand = gameState.deck.splice(0, 5);
     }
 
-    // Assign player bases: t1+t12 or t3+t10 for 2 players; both pairs for 3–4 players
+    // Assign player bases.
+    // Pair A: t1 ↔ t12, Pair B: t3 ↔ t10
+    // - 1 player : pick one pair randomly, assign one territory from it
+    // - 2 players: pick one pair randomly, each player gets one territory from it
+    // - 3–4 players: use both pairs, one territory per player
     const BASE_PAIRS: [string, string][] = [['t1', 't12'], ['t3', 't10']];
     const numPlayers = gameState.players.length;
-    let baseTerritoryIds: string[];
+    const baseTerritoryIds: string[] = [];
+
     if (numPlayers <= 2) {
-      const pair = BASE_PAIRS[Math.floor(Math.random() * 2)];
-      baseTerritoryIds = [...pair];
+      const [a, b] = Math.random() < 0.5 ? BASE_PAIRS[0] : BASE_PAIRS[1];
+      const pair = Math.random() < 0.5 ? [a, b] : [b, a];
+      baseTerritoryIds.push(...pair.slice(0, numPlayers));
     } else {
-      baseTerritoryIds = [...BASE_PAIRS[0], ...BASE_PAIRS[1]];
+      // Combine both pairs and shuffle, keeping within-pair distinctness
+      const pool = [
+        ...(Math.random() < 0.5 ? BASE_PAIRS[0] : [BASE_PAIRS[0][1], BASE_PAIRS[0][0]]),
+        ...(Math.random() < 0.5 ? BASE_PAIRS[1] : [BASE_PAIRS[1][1], BASE_PAIRS[1][0]]),
+      ];
+      baseTerritoryIds.push(...pool.slice(0, numPlayers));
     }
-    // Shuffle and assign one base territory per player
-    for (let i = baseTerritoryIds.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [baseTerritoryIds[i], baseTerritoryIds[j]] = [baseTerritoryIds[j], baseTerritoryIds[i]];
-    }
-    let armyCounter = 0;
     gameState.players.forEach((player, i) => {
       const territoryId = baseTerritoryIds[i];
       const territory = gameState.territories.find((t) => t.id === territoryId);
       if (territory) territory.basePlayerId = player.id;
       // Place 3 starting armies at the base
       for (let k = 0; k < 3; k++) {
-        gameState.armies.push({ id: `a${++armyCounter}`, playerId: player.id, territoryId });
+        gameState.armies.push({ id: `a${++armyIdCounter}`, playerId: player.id, territoryId });
       }
+    });
+
+    gameState.players.forEach((player) => {
+      const baseTerr = gameState.territories.find((t) => t.basePlayerId === player.id);
+      const terrDef = TERRITORY_DEFS.find((t) => t.id === baseTerr?.id);
+      console.log(`[base] ${player.name} → ${terrDef?.name ?? 'unknown'}`);
     });
 
     io.emit('game:state', gameState);
@@ -381,9 +396,8 @@ io.on('connection', (socket) => {
       callback({ success: false, error: 'Can only draw during the preparation step' });
       return;
     }
-    const MAX_DRAWS_PER_TURN = 1;
-    if (gameState.numDrawnThisTurn >= MAX_DRAWS_PER_TURN) {
-      callback({ success: false, error: 'Already drew the maximum number of cards this turn' });
+    if (gameState.preparationActionTaken) {
+      callback({ success: false, error: 'Already used your preparation action this turn' });
       return;
     }
     if (gameState.deck.length === 0) {
@@ -393,9 +407,68 @@ io.on('connection', (socket) => {
     const card = gameState.deck.shift()!;
     current.hand.push(card);
     gameState.numDrawnThisTurn++;
+    gameState.preparationActionTaken = true;
     io.emit('game:state', gameState);
     callback({ success: true });
     console.log(`[card:draw] ${current.name} drew ${card.name}`);
+  });
+
+  socket.on('preparation:recruit', (callback) => {
+    if (gameState.phase !== 'playing') {
+      callback({ success: false, error: 'Game is not in progress' });
+      return;
+    }
+    const current = gameState.players[gameState.currentPlayerIndex];
+    if (!current || current.id !== socket.id) {
+      callback({ success: false, error: 'It is not your turn' });
+      return;
+    }
+    if (gameState.turnStep !== 'preparation') {
+      callback({ success: false, error: 'Can only recruit during the preparation step' });
+      return;
+    }
+    if (gameState.preparationActionTaken) {
+      callback({ success: false, error: 'Already used your preparation action this turn' });
+      return;
+    }
+    const baseTerritory = gameState.territories.find((t) => t.basePlayerId === current.id);
+    if (!baseTerritory) {
+      callback({ success: false, error: 'You have no base territory' });
+      return;
+    }
+    gameState.armies.push(
+      { id: `a${++armyIdCounter}`, playerId: current.id, territoryId: baseTerritory.id },
+      { id: `a${++armyIdCounter}`, playerId: current.id, territoryId: baseTerritory.id },
+    );
+    gameState.preparationActionTaken = true;
+    io.emit('game:state', gameState);
+    callback({ success: true });
+    console.log(`[preparation:recruit] ${current.name} recruited 2 armies at ${baseTerritory.id}`);
+  });
+
+  socket.on('preparation:resupply', (callback) => {
+    if (gameState.phase !== 'playing') {
+      callback({ success: false, error: 'Game is not in progress' });
+      return;
+    }
+    const current = gameState.players[gameState.currentPlayerIndex];
+    if (!current || current.id !== socket.id) {
+      callback({ success: false, error: 'It is not your turn' });
+      return;
+    }
+    if (gameState.turnStep !== 'preparation') {
+      callback({ success: false, error: 'Can only re-supply during the preparation step' });
+      return;
+    }
+    if (gameState.preparationActionTaken) {
+      callback({ success: false, error: 'Already used your preparation action this turn' });
+      return;
+    }
+    current.credits += 2;
+    gameState.preparationActionTaken = true;
+    io.emit('game:state', gameState);
+    callback({ success: true });
+    console.log(`[preparation:resupply] ${current.name} gained 2 credits (total: ${current.credits})`);
   });
 
   socket.on('battle:retreat', ({ territoryId }: BattleRetreatPayload, callback) => {

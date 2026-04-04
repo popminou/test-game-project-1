@@ -38,9 +38,11 @@ interface GameBoardProps {
   onBattleCardPlay: (cardId: string) => void;
   onBattleCardDone: () => void;
   onDrawCard: () => void;
+  onRecruit: () => void;
+  onResupply: () => void;
 }
 
-export function GameBoard({ gameState, myPlayerId, onEndTurn, onStepAdvance, onLeave, onArmyMove, onCardPlay, onCardDiscard, onBattleStart, onBattleRetreat, onBattleResolve, onBattleRoll, onBattleEnd, onBattleCardPlay, onBattleCardDone, onDrawCard }: GameBoardProps) {
+export function GameBoard({ gameState, myPlayerId, onEndTurn, onStepAdvance, onLeave, onArmyMove, onCardPlay, onCardDiscard, onBattleStart, onBattleRetreat, onBattleResolve, onBattleRoll, onBattleEnd, onBattleCardPlay, onBattleCardDone, onDrawCard, onRecruit, onResupply }: GameBoardProps) {
   const mapInnerRef = useRef<HTMLDivElement>(null);
   const battleOverlayRef = useRef<HTMLDivElement>(null);
   const myBattleZoneRef = useRef<HTMLDivElement>(null);
@@ -59,7 +61,7 @@ export function GameBoard({ gameState, myPlayerId, onEndTurn, onStepAdvance, onL
     : null;
 
   const activeCardStep = activeBattle?.phase === 'card' ? 'battle' : gameState.turnStep;
-  const canDraw = isMyTurn && gameState.turnStep === 'preparation' && gameState.numDrawnThisTurn < 1 && gameState.deck.length > 0;
+  const canDraw = isMyTurn && gameState.turnStep === 'preparation' && !gameState.preparationActionTaken && gameState.deck.length > 0;
 
   const [actionMode, setActionMode] = useState<ActionMode>(null);
   const [drawAnim, setDrawAnim] = useState<DrawAnimation | null>(null);
@@ -119,10 +121,14 @@ export function GameBoard({ gameState, myPlayerId, onEndTurn, onStepAdvance, onL
           <PlayerBar
             player={currentPlayer}
             isMyTurn={isMyTurn}
-            inActionStep={isMyTurn && gameState.turnStep === 'action' && gameState.actionPhase === 'move'}
+            turnStep={gameState.turnStep}
+            actionPhase={gameState.actionPhase}
+            preparationActionTaken={gameState.preparationActionTaken}
             actionMode={actionMode}
             hasAP={(myPlayer?.currentActionPoints ?? 0) > 0}
             onToggleActionMode={toggleActionMode}
+            onRecruit={onRecruit}
+            onResupply={onResupply}
           />
         )}
         <ActiveCardsPanel activeCards={gameState.activeCards} players={gameState.players} />

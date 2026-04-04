@@ -64,6 +64,7 @@ export interface Player {
   victoryPoints: number;
   maxActionPoints: number;
   currentActionPoints: number;
+  credits: number;
   hand: Card[];
 }
 
@@ -113,6 +114,7 @@ export interface GameState {
   activeBattle: ActiveBattle | null;
   turnStep: TurnStep;
   actionPhase: ActionPhase | null;
+  preparationActionTaken: boolean;
 }
 
 export interface ArmyMovePayload {
@@ -206,6 +208,12 @@ export interface ClientToServerEvents {
     callback: (response: { success: boolean; error?: string }) => void,
   ) => void;
   'step:advance': (
+    callback: (response: { success: boolean; error?: string }) => void,
+  ) => void;
+  'preparation:recruit': (
+    callback: (response: { success: boolean; error?: string }) => void,
+  ) => void;
+  'preparation:resupply': (
     callback: (response: { success: boolean; error?: string }) => void,
   ) => void;
 }
