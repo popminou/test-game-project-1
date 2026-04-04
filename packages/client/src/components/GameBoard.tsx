@@ -58,7 +58,7 @@ export function GameBoard({ gameState, myPlayerId, onEndTurn, onStepAdvance, onL
     ? gameState.activeBattle
     : null;
 
-  const activeCardPhase: CardPhase = activeBattle?.phase === 'card' ? 'battle' : 'action';
+  const activeCardPhase: CardPhase = activeBattle?.phase === 'card' ? 'battle' : gameState.turnStep;
   const canDraw = isMyTurn && gameState.turnStep === 'preparation' && gameState.numDrawnThisTurn < 1 && gameState.deck.length > 0;
 
   const [actionMode, setActionMode] = useState<ActionMode>(null);

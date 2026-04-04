@@ -305,6 +305,11 @@ io.on('connection', (socket) => {
       callback({ success: false, error: 'Card not in hand' });
       return;
     }
+    const cardToPlay = current.hand[cardIndex];
+    if (!cardToPlay.phases.includes(gameState.turnStep)) {
+      callback({ success: false, error: `Card cannot be played during the ${gameState.turnStep} step` });
+      return;
+    }
     const [card] = current.hand.splice(cardIndex, 1);
     current.currentActionPoints--;
     if (card.duration.type === 'instant') {
