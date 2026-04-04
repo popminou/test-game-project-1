@@ -25,11 +25,13 @@ export type DurationStep = GameStep;
 export type CardDuration =
   | { type: 'instant' }
   | { type: 'turn-step'; step: DurationStep }
+  | { type: 'until-next-step'; step: DurationStep }
   | { type: 'turns'; count: number }
   | { type: 'permanent' };
 
 export interface Card {
   id: string;
+  cardId: string;
   steps: GameStep[];
   type: CardType;
   name: string;
